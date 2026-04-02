@@ -1,0 +1,19 @@
+[package]
+name = "saddle-ai-hpa-pathfinding"
+version = "0.1.0"
+edition = "2024"
+publish = false
+repository = "https://github.com/julien-blanchon/saddle-ai-hpa-pathfinding"
+license = "MIT-0"
+description = "Hierarchical pathfinding for large 2D, 2.5D, and 3D Bevy grids"
+
+[dependencies]
+bevy = "0.18"
+futures-lite = "2"
+
+[workspace]
+
+[lints.clippy]
+too_many_arguments = "allow"
+type_complexity = "allow"
+nonstandard_macro_braces = "warn"

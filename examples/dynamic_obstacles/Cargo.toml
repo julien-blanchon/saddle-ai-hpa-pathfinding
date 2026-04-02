@@ -1,0 +1,13 @@
+[package]
+name = "saddle-ai-hpa-pathfinding-example-dynamic-obstacles"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bevy = { workspace = true }
+saddle-ai-hpa-pathfinding = { workspace = true }
+saddle-ai-hpa-pathfinding-example-support = { path = "../support" }
+
+[lints]
+workspace = true
