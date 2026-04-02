@@ -11,6 +11,7 @@ use crate::{
     stats::PathfindingStats,
     validation::{PathInvalidationReason, PathValidationRecord},
 };
+use bevy::platform::time::Instant;
 use bevy::{
     ecs::schedule::ScheduleLabel,
     prelude::*,
@@ -18,7 +19,6 @@ use bevy::{
 };
 use futures_lite::future;
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::time::Instant;
 
 #[derive(ScheduleLabel, Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct NeverDeactivateSchedule;

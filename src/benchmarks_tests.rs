@@ -2,7 +2,7 @@ use super::{dynamic_grid, large_snapshot};
 use crate::{
     config::PathQueryMode, coord::GridCoord, filters::PathFilterProfile, search::find_path,
 };
-use std::time::Instant;
+use bevy::platform::time::Instant;
 
 #[test]
 #[ignore = "benchmark-style validation; run with --ignored in release mode"]
