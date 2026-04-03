@@ -55,15 +55,20 @@ fn flow_field_and_queries_share_clearance_rules() {
         false,
         &[],
     );
-    let wide_flow = grid.build_flow_field_with_clearance(
-        GridCoord::new(5, 5, 0),
-        crate::filters::PathFilterId(0),
-        2,
-        &[],
-    )
-    .unwrap();
+    let wide_flow = grid
+        .build_flow_field_with_clearance(
+            GridCoord::new(5, 5, 0),
+            crate::filters::PathFilterId(0),
+            2,
+            &[],
+        )
+        .unwrap();
 
     assert!(default_path.is_some());
     assert!(wide_path.is_none());
-    assert!(wide_flow.integration_cost(GridCoord::new(0, 0, 0)).is_none());
+    assert!(
+        wide_flow
+            .integration_cost(GridCoord::new(0, 0, 0))
+            .is_none()
+    );
 }

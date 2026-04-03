@@ -202,8 +202,7 @@ impl GridStorage {
                     } else {
                         0
                     };
-                    self.cells[index].clearance =
-                        1 + right.min(down).min(diagonal);
+                    self.cells[index].clearance = 1 + right.min(down).min(diagonal);
                 }
             }
         }
