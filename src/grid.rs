@@ -83,7 +83,7 @@ impl GridStorage {
         rounding: WorldRoundingPolicy,
     ) -> Self {
         let len = dimensions.x as usize * dimensions.y as usize * dimensions.z as usize;
-        Self {
+        let mut storage = Self {
             dimensions,
             space: GridSpace {
                 origin,
@@ -92,7 +92,9 @@ impl GridStorage {
             },
             cells: vec![CellData::default(); len],
             transitions: BTreeMap::new(),
-        }
+        };
+        storage.recompute_clearance();
+        storage
     }
 
     pub fn bounds(&self) -> GridAabb {
@@ -132,7 +134,11 @@ impl GridStorage {
 
     pub fn set_cell(&mut self, coord: GridCoord, cell: CellData) -> bool {
         if let Some(slot) = self.cell_mut(coord) {
+            let walkable_changed = slot.walkable != cell.walkable;
             *slot = cell;
+            if walkable_changed {
+                self.recompute_clearance();
+            }
             true
         } else {
             false
@@ -146,15 +152,60 @@ impl GridStorage {
                     f(coord, cell);
                 }
             }
+            self.recompute_clearance();
         }
     }
 
     pub fn set_walkable(&mut self, coord: GridCoord, walkable: bool) -> bool {
         if let Some(cell) = self.cell_mut(coord) {
+            let changed = cell.walkable != walkable;
             cell.walkable = walkable;
+            if changed {
+                self.recompute_clearance();
+            }
             true
         } else {
             false
+        }
+    }
+
+    pub fn recompute_clearance(&mut self) {
+        let width = self.dimensions.x as usize;
+        let height = self.dimensions.y as usize;
+        if width == 0 || height == 0 {
+            return;
+        }
+
+        let layer_len = width * height;
+        for layer in 0..self.dimensions.z as usize {
+            let base = layer * layer_len;
+            for y in (0..height).rev() {
+                for x in (0..width).rev() {
+                    let index = base + y * width + x;
+                    if !self.cells[index].walkable {
+                        self.cells[index].clearance = 0;
+                        continue;
+                    }
+
+                    let right = if x + 1 < width {
+                        self.cells[index + 1].clearance
+                    } else {
+                        0
+                    };
+                    let down = if y + 1 < height {
+                        self.cells[index + width].clearance
+                    } else {
+                        0
+                    };
+                    let diagonal = if x + 1 < width && y + 1 < height {
+                        self.cells[index + width + 1].clearance
+                    } else {
+                        0
+                    };
+                    self.cells[index].clearance =
+                        1 + right.min(down).min(diagonal);
+                }
+            }
         }
     }
 

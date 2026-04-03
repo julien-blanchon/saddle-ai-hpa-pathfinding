@@ -2,6 +2,7 @@ use crate::{
     config::HpaPathfindingConfig,
     coord::{GridAabb, GridCoord},
     filters::{PathFilterId, PathFilterLibrary, PathFilterProfile},
+    flow_field::{FlowField, build_flow_field},
     grid::{CellData, GridStorage, TransitionLink},
     hierarchy::{ClusterKey, PathfindingSnapshot},
     search::{
@@ -70,6 +71,16 @@ impl PathfindingGrid {
             .unwrap_or_else(PathFilterProfile::default)
     }
 
+    pub fn filter_with_clearance(
+        &self,
+        id: PathFilterId,
+        clearance_override: u16,
+    ) -> PathFilterProfile {
+        let mut profile = self.filter(id);
+        profile.clearance = profile.clearance.max(clearance_override);
+        profile
+    }
+
     pub fn query_path(
         &self,
         start: GridCoord,
@@ -79,7 +90,20 @@ impl PathfindingGrid {
         allow_partial: bool,
         overlays: &[crate::filters::PathCostOverlay],
     ) -> Option<crate::search::ResolvedPath> {
-        let profile = self.filter(filter);
+        self.query_path_with_clearance(start, goal, filter, 0, mode, allow_partial, overlays)
+    }
+
+    pub fn query_path_with_clearance(
+        &self,
+        start: GridCoord,
+        goal: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+        mode: crate::config::PathQueryMode,
+        allow_partial: bool,
+        overlays: &[crate::filters::PathCostOverlay],
+    ) -> Option<crate::search::ResolvedPath> {
+        let profile = self.filter_with_clearance(filter, clearance);
         find_path(
             &self.snapshot,
             start,
@@ -99,7 +123,19 @@ impl PathfindingGrid {
         allow_partial: bool,
         overlays: Vec<crate::filters::PathCostOverlay>,
     ) -> Option<SlicedGridSearch> {
-        let profile = self.filter(filter);
+        self.query_path_sliced_with_clearance(start, goal, filter, 0, allow_partial, overlays)
+    }
+
+    pub fn query_path_sliced_with_clearance(
+        &self,
+        start: GridCoord,
+        goal: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+        allow_partial: bool,
+        overlays: Vec<crate::filters::PathCostOverlay>,
+    ) -> Option<SlicedGridSearch> {
+        let profile = self.filter_with_clearance(filter, clearance);
         SlicedGridSearch::new(
             self.snapshot.clone(),
             start,
@@ -111,7 +147,16 @@ impl PathfindingGrid {
     }
 
     pub fn nearest_walkable(&self, start: GridCoord, filter: PathFilterId) -> Option<GridCoord> {
-        let profile = self.filter(filter);
+        self.nearest_walkable_with_clearance(start, filter, 0)
+    }
+
+    pub fn nearest_walkable_with_clearance(
+        &self,
+        start: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+    ) -> Option<GridCoord> {
+        let profile = self.filter_with_clearance(filter, clearance);
         nearest_walkable_cell(&self.snapshot, start, &profile)
     }
 
@@ -122,7 +167,18 @@ impl PathfindingGrid {
         filter: PathFilterId,
         overlays: &[crate::filters::PathCostOverlay],
     ) -> bool {
-        let profile = self.filter(filter);
+        self.raycast_line_of_sight_with_clearance(start, goal, filter, 0, overlays)
+    }
+
+    pub fn raycast_line_of_sight_with_clearance(
+        &self,
+        start: GridCoord,
+        goal: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+        overlays: &[crate::filters::PathCostOverlay],
+    ) -> bool {
+        let profile = self.filter_with_clearance(filter, clearance);
         line_of_sight(&self.snapshot, start, goal, &profile, overlays)
     }
 
@@ -133,8 +189,39 @@ impl PathfindingGrid {
         filter: PathFilterId,
         overlays: &[crate::filters::PathCostOverlay],
     ) -> CostEstimate {
-        let profile = self.filter(filter);
+        self.estimate_cost_with_clearance(start, goal, filter, 0, overlays)
+    }
+
+    pub fn estimate_cost_with_clearance(
+        &self,
+        start: GridCoord,
+        goal: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+        overlays: &[crate::filters::PathCostOverlay],
+    ) -> CostEstimate {
+        let profile = self.filter_with_clearance(filter, clearance);
         estimate_cost(&self.snapshot, start, goal, &profile, overlays)
+    }
+
+    pub fn build_flow_field(
+        &self,
+        goal: GridCoord,
+        filter: PathFilterId,
+        overlays: &[crate::filters::PathCostOverlay],
+    ) -> Option<FlowField> {
+        self.build_flow_field_with_clearance(goal, filter, 0, overlays)
+    }
+
+    pub fn build_flow_field_with_clearance(
+        &self,
+        goal: GridCoord,
+        filter: PathFilterId,
+        clearance: u16,
+        overlays: &[crate::filters::PathCostOverlay],
+    ) -> Option<FlowField> {
+        let profile = self.filter_with_clearance(filter, clearance);
+        build_flow_field(&self.snapshot, goal, &profile, overlays)
     }
 
     pub fn register_filter(&mut self, profile: PathFilterProfile) -> PathFilterId {
@@ -244,3 +331,7 @@ impl PathfindingGrid {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "ecs_api_tests.rs"]
+mod tests;

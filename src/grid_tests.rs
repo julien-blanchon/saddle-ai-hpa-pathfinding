@@ -34,7 +34,7 @@ fn area_type_and_walkability_round_trip() {
     assert_eq!(cell.area, AreaTypeId(7));
     assert_eq!(cell.traversal_mask, AreaMask::from_bit(4));
     assert_eq!(cell.base_cost, 3.5);
-    assert_eq!(cell.clearance, 2);
+    assert_eq!(cell.clearance, 0);
 }
 
 #[test]
@@ -154,4 +154,34 @@ fn overlays_bias_costs() {
         .traversal_cost(GridCoord::new(2, 3, 0), coord, &profile, &[overlay])
         .unwrap();
     assert!((cost - 5.0).abs() < 0.001);
+}
+
+#[test]
+fn clearance_is_recomputed_for_walkable_regions() {
+    let grid = GridStorage::new(
+        UVec3::new(4, 4, 1),
+        Vec3::ZERO,
+        1.0,
+        WorldRoundingPolicy::Floor,
+    );
+
+    assert_eq!(grid.cell(GridCoord::new(0, 0, 0)).unwrap().clearance, 4);
+    assert_eq!(grid.cell(GridCoord::new(2, 2, 0)).unwrap().clearance, 2);
+    assert_eq!(grid.cell(GridCoord::new(3, 3, 0)).unwrap().clearance, 1);
+}
+
+#[test]
+fn clearance_updates_after_obstacle_changes() {
+    let mut grid = GridStorage::new(
+        UVec3::new(4, 4, 1),
+        Vec3::ZERO,
+        1.0,
+        WorldRoundingPolicy::Floor,
+    );
+
+    grid.set_walkable(GridCoord::new(1, 1, 0), false);
+
+    assert_eq!(grid.cell(GridCoord::new(0, 0, 0)).unwrap().clearance, 1);
+    assert_eq!(grid.cell(GridCoord::new(1, 1, 0)).unwrap().clearance, 0);
+    assert_eq!(grid.cell(GridCoord::new(2, 1, 0)).unwrap().clearance, 2);
 }

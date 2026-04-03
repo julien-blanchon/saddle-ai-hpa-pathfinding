@@ -6,7 +6,9 @@ publish = false
 
 [dependencies]
 bevy = { workspace = true }
+saddle-pane = { workspace = true }
 saddle-ai-hpa-pathfinding = { workspace = true }
+saddle-ai-hpa-pathfinding-example-support = { path = "../support" }
 
 [lints]
 workspace = true

@@ -17,9 +17,12 @@ use saddle_ai_hpa_pathfinding::{
     ObstacleShape, PathFilterId, PathFilterProfile, PathInvalidated, PathRequest, PathfindingAgent,
     PathfindingGrid, PathfindingObstacle, PathfindingStats,
 };
+use saddle_ai_hpa_pathfinding_example_support as support;
+use saddle_pane::prelude::*;
 
 const DEFAULT_LAB_BRP_PORT: u16 = 15_713;
 const GATE_COORD: GridCoord = GridCoord(IVec3::new(16, 12, 0));
+const FLOW_FIELD_START: GridCoord = GridCoord(IVec3::new(2, 2, 0));
 
 #[derive(Component)]
 struct SmokeAgent;
@@ -59,6 +62,9 @@ pub struct LabDiagnostics {
     pub invalidations: u64,
     pub stress_completed: u64,
     pub queue_depth: usize,
+    pub flow_field_reachable_cells: u32,
+    pub flow_field_start_has_direction: bool,
+    pub wide_flow_field_blocked: bool,
 }
 
 fn main() {
@@ -67,6 +73,13 @@ fn main() {
     app.insert_resource(ClearColor(Color::srgb(0.12, 0.13, 0.15)));
     app.insert_resource(LabControl::default());
     app.insert_resource(LabDiagnostics::default());
+    app.insert_resource(support::HpaExamplePane {
+        goal_x: 28,
+        goal_y: 20,
+        draw_clusters: true,
+        draw_portals: true,
+        ..default()
+    });
     app.insert_resource(build_lab_config());
     app.insert_resource(build_lab_grid());
     if headless {
@@ -96,9 +109,19 @@ fn main() {
         ));
         #[cfg(feature = "e2e")]
         app.add_plugins(e2e::HpaPathfindingLabE2EPlugin);
+        app.add_plugins((
+            bevy_flair::FlairPlugin,
+            bevy_input_focus::InputDispatchPlugin,
+            bevy_ui_widgets::UiWidgetsPlugins,
+            bevy_input_focus::tab_navigation::TabNavigationPlugin,
+            PanePlugin,
+        ))
+        .register_pane::<support::HpaExamplePane>();
     }
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
+    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(Update, sync_control_from_pane);
     app.add_systems(
         Update,
         update_diagnostics.after(saddle_ai_hpa_pathfinding::HpaPathfindingSystems::PublishResults),
@@ -175,7 +198,10 @@ fn build_lab_grid() -> PathfindingGrid {
         }
     }
     grid.fill_region(
-        saddle_ai_hpa_pathfinding::GridAabb::new(GridCoord::new(3, 15, 0), GridCoord::new(24, 18, 0)),
+        saddle_ai_hpa_pathfinding::GridAabb::new(
+            GridCoord::new(3, 15, 0),
+            GridCoord::new(24, 18, 0),
+        ),
         |_coord, cell| {
             cell.area = AreaTypeId(1);
             cell.base_cost = 1.0;
@@ -366,6 +392,8 @@ fn track_invalidations(
 
 fn update_diagnostics(
     stats: Res<PathfindingStats>,
+    grid: Res<PathfindingGrid>,
+    pane: Res<support::HpaExamplePane>,
     smoke: Query<&ComputedPath, With<SmokeAgent>>,
     dynamic: Query<&ComputedPath, With<DynamicAgent>>,
     wheeled: Query<&ComputedPath, With<WheeledAgent>>,
@@ -376,6 +404,26 @@ fn update_diagnostics(
 ) {
     diagnostics.queue_depth = stats.queue_depth;
     diagnostics.stress_completed = stress.iter().count() as u64;
+
+    let goal = GridCoord::new(
+        pane.goal_x.max(0),
+        pane.goal_y.max(0),
+        pane.goal_layer.max(0),
+    );
+    if let Some(flow_field) = grid.build_flow_field_with_clearance(goal, PathFilterId(0), 0, &[]) {
+        diagnostics.flow_field_reachable_cells = flow_field
+            .cells
+            .iter()
+            .filter(|cell| cell.integration_cost.is_some())
+            .count() as u32;
+        diagnostics.flow_field_start_has_direction =
+            flow_field.direction_at(FLOW_FIELD_START).is_some();
+    }
+
+    diagnostics.wide_flow_field_blocked = grid
+        .build_flow_field_with_clearance(goal, PathFilterId(0), 2, &[])
+        .and_then(|flow_field| flow_field.direction_at(FLOW_FIELD_START))
+        .is_none();
 
     if let Ok(path) = smoke.single() {
         diagnostics.smoke_ready = true;
@@ -398,4 +446,11 @@ fn update_diagnostics(
     if let Ok(path) = utility.single() {
         diagnostics.utility_cost = path.total_cost;
     }
+}
+
+fn sync_control_from_pane(pane: Res<support::HpaExamplePane>, mut control: ResMut<LabControl>) {
+    if !pane.is_changed() {
+        return;
+    }
+    control.gate_blocked = pane.gate_blocked;
 }

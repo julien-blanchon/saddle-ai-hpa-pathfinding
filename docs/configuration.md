@@ -84,6 +84,19 @@ Disable only if you do not care about reproducible request ordering in the ECS w
 
 Profiles are registered on the grid with a stable `PathFilterId` so ECS agents can refer to them cheaply.
 
+## Agent Clearance
+
+`PathfindingAgent.clearance` and the `*_with_clearance` query helpers enforce a minimum free square around each traversed cell.
+
+- `0`: agent uses the raw filter profile only
+- `1+`: requires at least that many contiguous walkable cells of clearance
+
+Use clearance when:
+
+- the same grid serves small scouts and large vehicles
+- agents should reject narrow hallways without creating duplicate grids
+- nearest-walkable queries must find a cell that actually fits the agent body
+
 ## Temporary Overlays
 
 `PathCostOverlay` adds a cost to all cells inside a `GridAabb` for one request. Overlays are best for:
@@ -93,3 +106,13 @@ Profiles are registered on the grid with a stable `PathFilterId` so ECS agents c
 - temporary soft reservations
 
 Overlays do not mutate the stored grid. They only influence that request, including ECS `PathRequest` components.
+
+## Flow Fields
+
+`PathfindingGrid::build_flow_field` and `build_flow_field_with_clearance` generate a reusable one-goal field from the currently committed snapshot.
+
+Flow fields are best for:
+
+- RTS groups converging on one rally point
+- evacuation or lane-routing visualizations
+- combining long-range HPA planning with local movement systems that only need the next best step

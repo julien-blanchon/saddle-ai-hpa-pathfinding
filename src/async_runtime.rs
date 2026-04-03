@@ -29,6 +29,7 @@ struct QueuedQuery {
     start: GridCoord,
     goal: GridCoord,
     filter: crate::filters::PathFilterId,
+    clearance: u16,
     priority: i32,
     mode: PathQueryMode,
     allow_partial: bool,
@@ -44,6 +45,7 @@ struct DedupKey {
     start: GridCoord,
     goal: GridCoord,
     filter: crate::filters::PathFilterId,
+    clearance: u16,
     mode: PathQueryMode,
     allow_partial: bool,
     overlay_signature: u64,
@@ -178,6 +180,7 @@ pub(crate) fn enqueue_requests(
             start,
             goal: request.goal,
             filter: agent.map_or(crate::filters::PathFilterId(0), |agent| agent.filter),
+            clearance: agent.map_or(0, |agent| agent.clearance),
             mode: request.mode,
             allow_partial: request.allow_partial,
             overlay_signature: request.overlay_signature(),
@@ -190,6 +193,7 @@ pub(crate) fn enqueue_requests(
             start,
             goal: request.goal,
             filter: dedup_key.filter,
+            clearance: dedup_key.clearance,
             priority: agent.map_or(0, |agent| agent.request_priority),
             mode: request.mode,
             allow_partial: request.allow_partial,
@@ -240,6 +244,7 @@ pub(crate) fn process_queries(
             start: query.start,
             goal: query.goal,
             filter: query.filter,
+            clearance: query.clearance,
             mode: query.mode,
             allow_partial: query.allow_partial,
             overlay_signature: query.overlay_signature,
@@ -249,6 +254,7 @@ pub(crate) fn process_queries(
             start: query.start,
             goal: query.goal,
             filter: query.filter,
+            clearance: query.clearance,
             mode: query.mode,
             allow_partial: query.allow_partial,
             overlay_signature: query.overlay_signature,
@@ -276,7 +282,7 @@ pub(crate) fn process_queries(
             .entity(query.entity)
             .insert(PendingPathQuery { id: query_id });
         let snapshot = grid.snapshot.clone();
-        let profile = grid.filter(query.filter);
+        let profile = grid.filter_with_clearance(query.filter, query.clearance);
         if matches!(query.mode, PathQueryMode::Sliced) {
             if let Some(runner) = SlicedGridSearch::new(
                 snapshot,
@@ -351,6 +357,7 @@ pub(crate) fn process_queries(
                 start: dedup_key.start,
                 goal: dedup_key.goal,
                 filter: dedup_key.filter,
+                clearance: dedup_key.clearance,
                 mode: dedup_key.mode,
                 allow_partial: dedup_key.allow_partial,
                 overlay_signature: dedup_key.overlay_signature,

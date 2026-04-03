@@ -13,6 +13,7 @@ pub struct PathCacheKey {
     pub start: GridCoord,
     pub goal: GridCoord,
     pub filter: PathFilterId,
+    pub clearance: u16,
     pub mode: PathQueryMode,
     pub allow_partial: bool,
     pub overlay_signature: u64,

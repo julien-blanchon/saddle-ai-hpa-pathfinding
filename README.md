@@ -75,13 +75,15 @@ fn setup(mut commands: Commands, mut grid: ResMut<PathfindingGrid>) {
   `PathfindingGrid`, `HpaPathfindingConfig`, `PathfindingStats`
 - Core coordinate and filter types:
   `GridCoord`, `GridAabb`, `PathQueryId`, `PathVersion`, `AreaTypeId`, `PathFilterId`, `PathFilterProfile`, `PathCostOverlay`
+- Flow-field types:
+  `FlowField`, `FlowFieldCell`
 - ECS components:
   `PathfindingAgent`, `PathRequest`, `PendingPathQuery`, `ComputedPath`, `PathfindingObstacle`
 - Messages:
   `GridRegionChanged`, `PathReady`, `PathInvalidated`
 - Pure query helpers:
   `find_path`, `estimate_cost`, `nearest_walkable_cell`, `line_of_sight`,
-  plus `PathfindingGrid::{query_path, query_path_sliced, nearest_walkable, raycast_line_of_sight, estimate_cost}`
+  plus `build_flow_field` and `PathfindingGrid::{query_path, query_path_with_clearance, query_path_sliced, query_path_sliced_with_clearance, nearest_walkable, nearest_walkable_with_clearance, raycast_line_of_sight, raycast_line_of_sight_with_clearance, estimate_cost, estimate_cost_with_clearance, build_flow_field, build_flow_field_with_clearance}`
 
 ## Feature Boundaries
 
@@ -89,7 +91,9 @@ Included:
 
 - hierarchical route planning on reusable grids
 - filter- and mask-aware path queries
+- agent-clearance-aware path queries and nearest-walkable probes
 - query-scoped cost overlays through pure calls and ECS `PathRequest`
+- reusable flow-field generation for many-agents-to-one-goal routing
 - dirty-region rebuilds and cache invalidation
 - ECS obstacle synchronization for blocked dynamic regions
 - async and sliced query orchestration
@@ -106,31 +110,32 @@ Not included:
 
 | Example | Purpose | Run |
 | --- | --- | --- |
-| `basic` | Minimal sync query and ECS request flow on a 2D grid | `cargo run -p saddle-ai-hpa-pathfinding-example-basic` |
-| `dynamic_obstacles` | Region edits, dirty rebuilds, and path invalidation | `cargo run -p saddle-ai-hpa-pathfinding-example-dynamic-obstacles` |
-| `layered_2_5d` | Layered grid with explicit vertical transitions | `cargo run -p saddle-ai-hpa-pathfinding-example-layered-2-5d` |
-| `large_grid` | Large-map hierarchy and stats overlay | `cargo run -p saddle-ai-hpa-pathfinding-example-large-grid` |
-| `async_queries` | Async ECS query queue, deduplication, and publication | `cargo run -p saddle-ai-hpa-pathfinding-example-async-queries` |
-| `filters_and_costs` | Filter profiles, terrain masks, and query-time overlays | `cargo run -p saddle-ai-hpa-pathfinding-example-filters-and-costs` |
-| `debug_viz` | Debug layers for clusters, portals, paths, and the cost heatmap | `cargo run -p saddle-ai-hpa-pathfinding-example-debug-viz` |
-| `saddle-ai-hpa-pathfinding-lab` | Crate-local showcase with BRP and E2E hooks | `cargo run -p saddle-ai-hpa-pathfinding-lab` |
+| `basic` | Minimal sync query and ECS request flow on a 2D grid | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-basic` |
+| `dynamic_obstacles` | Region edits, dirty rebuilds, and path invalidation | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-dynamic-obstacles` |
+| `layered_2_5d` | Layered grid with explicit vertical transitions | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-layered-2-5d` |
+| `large_grid` | Large-map hierarchy and stats overlay | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-large-grid` |
+| `async_queries` | Async ECS query queue, deduplication, and publication | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-async-queries` |
+| `filters_and_costs` | Filter profiles, terrain masks, and query-time overlays | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-filters-and-costs` |
+| `flow_field` | One-to-many flow field directions with live goal and overlay tuning | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-flow-field` |
+| `debug_viz` | Debug layers for clusters, portals, paths, and the cost heatmap | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-debug-viz` |
+| `saddle-ai-hpa-pathfinding-lab` | Crate-local showcase with BRP and E2E hooks | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab` |
 
 ## Crate-Local Lab
 
 `shared/ai/saddle-ai-hpa-pathfinding/examples/lab` is the richer verification surface for this crate. It keeps BRP and E2E scenarios inside the shared crate instead of pushing them into project-level sandboxes.
 
 ```bash
-cargo run -p saddle-ai-hpa-pathfinding-lab
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab
 ```
 
 E2E commands:
 
 ```bash
-cargo run -p saddle-ai-hpa-pathfinding-lab --features e2e -- smoke_launch
-cargo run -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_smoke
-cargo run -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_dynamic
-cargo run -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_filters
-cargo run -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_large_grid
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab --features e2e -- smoke_launch
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_smoke
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_dynamic
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_filters
+cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab --features e2e -- hpa_pathfinding_large_grid
 ```
 
 ## BRP

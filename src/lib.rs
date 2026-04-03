@@ -11,6 +11,7 @@ mod debug;
 mod dynamic;
 mod ecs_api;
 mod filters;
+mod flow_field;
 mod grid;
 mod hierarchy;
 mod messages;
@@ -30,6 +31,7 @@ pub use crate::ecs_api::PathfindingGrid;
 pub use crate::filters::{
     AreaMask, AreaTypeId, PathCostOverlay, PathFilterId, PathFilterLibrary, PathFilterProfile,
 };
+pub use crate::flow_field::{FlowField, FlowFieldCell, build_flow_field};
 pub use crate::grid::{CellData, GridStorage, TransitionKind, TransitionLink};
 pub use crate::hierarchy::{
     ClusterInfo, ClusterKey, ClusterVersionStamp, EdgeKind, EdgeRoute, HierarchyLevel,
@@ -117,6 +119,8 @@ impl Plugin for HpaPathfindingPlugin {
             .register_type::<ComputedPath>()
             .register_type::<EdgeKind>()
             .register_type::<EdgeRoute>()
+            .register_type::<FlowField>()
+            .register_type::<FlowFieldCell>()
             .register_type::<GridAabb>()
             .register_type::<GridCoord>()
             .register_type::<GridRegionChanged>()

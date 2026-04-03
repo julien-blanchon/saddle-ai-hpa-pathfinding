@@ -10,6 +10,7 @@ pub fn list_scenarios() -> Vec<&'static str> {
         "hpa_pathfinding_dynamic",
         "hpa_pathfinding_filters",
         "hpa_pathfinding_large_grid",
+        "hpa_pathfinding_flow_field",
     ]
 }
 
@@ -20,12 +21,25 @@ pub fn scenario_by_name(name: &str) -> Option<Scenario> {
         "hpa_pathfinding_dynamic" => Some(hpa_pathfinding_dynamic()),
         "hpa_pathfinding_filters" => Some(hpa_pathfinding_filters()),
         "hpa_pathfinding_large_grid" => Some(hpa_pathfinding_large_grid()),
+        "hpa_pathfinding_flow_field" => Some(hpa_pathfinding_flow_field()),
         _ => None,
     }
 }
 
 fn block_gate(blocked: bool) -> Action {
     Action::Custom(Box::new(move |world| set_gate_blocked(world, blocked)))
+}
+
+fn set_flow_field_debug(enabled: bool) -> Action {
+    Action::Custom(Box::new(move |world| {
+        let mut pane =
+            world.resource_mut::<saddle_ai_hpa_pathfinding_example_support::HpaExamplePane>();
+        pane.draw_grid = enabled;
+        pane.draw_heatmap = enabled;
+        let mut config = world.resource_mut::<saddle_ai_hpa_pathfinding::HpaPathfindingConfig>();
+        config.debug_draw_grid = enabled;
+        config.debug_draw_cost_heatmap = enabled;
+    }))
 }
 
 fn wait_until_smoke() -> Action {
@@ -131,5 +145,25 @@ fn hpa_pathfinding_large_grid() -> Scenario {
         .then(Action::Screenshot("large_grid".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("hpa_pathfinding_large_grid"))
+        .build()
+}
+
+fn hpa_pathfinding_flow_field() -> Scenario {
+    Scenario::builder("hpa_pathfinding_flow_field")
+        .description(
+            "Build a default flow field toward the smoke goal and verify a wide-clearance variant cannot route through the single-cell gate.",
+        )
+        .then(wait_until_smoke())
+        .then(assertions::custom("flow field reflects the gate bottleneck", |world| {
+            let diagnostics = world.resource::<LabDiagnostics>();
+            diagnostics.flow_field_start_has_direction
+                && diagnostics.wide_flow_field_blocked
+                && diagnostics.flow_field_reachable_cells > 0
+        }))
+        .then(set_flow_field_debug(true))
+        .then(Action::WaitFrames(8))
+        .then(Action::Screenshot("flow_field".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("hpa_pathfinding_flow_field"))
         .build()
 }

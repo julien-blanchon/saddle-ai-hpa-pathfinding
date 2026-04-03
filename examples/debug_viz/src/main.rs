@@ -1,3 +1,5 @@
+use saddle_ai_hpa_pathfinding_example_support as support;
+
 use bevy::{
     camera::{OrthographicProjection, Projection},
     prelude::*,
@@ -5,6 +7,7 @@ use bevy::{
 use saddle_ai_hpa_pathfinding::{
     GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
 };
+use saddle_pane::prelude::*;
 
 #[derive(Component)]
 struct WallCell;
@@ -35,7 +38,10 @@ fn main() {
                 }
             }
             grid.fill_region(
-                saddle_ai_hpa_pathfinding::GridAabb::new(GridCoord::new(3, 4, 0), GridCoord::new(28, 7, 0)),
+                saddle_ai_hpa_pathfinding::GridAabb::new(
+                    GridCoord::new(3, 4, 0),
+                    GridCoord::new(28, 7, 0),
+                ),
                 |_coord, cell| {
                     cell.base_cost = 3.0;
                 },
@@ -54,9 +60,26 @@ fn main() {
         ..default()
     }));
     app.insert_resource(ClearColor(Color::srgb(0.04, 0.05, 0.06)));
+    app.insert_resource(support::HpaExamplePane {
+        goal_x: 28,
+        goal_y: 20,
+        draw_clusters: true,
+        draw_portals: true,
+        draw_heatmap: true,
+        ..default()
+    });
     app.insert_resource(config);
     app.insert_resource(path_grid.clone());
+    app.add_plugins((
+        bevy_flair::FlairPlugin,
+        bevy_input_focus::InputDispatchPlugin,
+        bevy_ui_widgets::UiWidgetsPlugins,
+        bevy_input_focus::tab_navigation::TabNavigationPlugin,
+        PanePlugin,
+    ))
+    .register_pane::<support::HpaExamplePane>();
     app.add_plugins(HpaPathfindingPlugin::default());
+    app.add_systems(Update, support::sync_config_from_pane);
     app.add_systems(Startup, move |mut commands: Commands| {
         commands.spawn((
             Name::new("Camera"),

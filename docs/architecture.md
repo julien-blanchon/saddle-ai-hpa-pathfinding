@@ -90,6 +90,23 @@ The default `query_path` flow is:
 
 `query_path_sliced` keeps the direct-grid open list and parent map alive across frames and expands only a bounded number of low-level nodes per call. That keeps the runtime WASM-safe and frame-budgeted without blocking the main thread.
 
+## Flow-Field Pipeline
+
+`build_flow_field` uses the committed snapshot but solves the graph in reverse from one goal:
+
+1. Validate or relocate the requested goal to the nearest passable cell.
+2. Run a Dijkstra-style reverse expansion over low-level neighbors and incoming explicit transitions.
+3. Record the best integration cost for every reachable cell.
+4. Pick the cheapest reachable neighbor of each cell as its `next` pointer.
+
+The result is a reusable field that many agents can sample cheaply without issuing independent path queries.
+
+Flow-field generation respects:
+
+- the active filter profile
+- request-local overlays
+- clearance-aware variants through `build_flow_field_with_clearance`
+
 ## Filter Model
 
 Every request carries either a registered `PathFilterId` or an inline `PathFilterProfile`.
@@ -150,6 +167,8 @@ Each entry stores:
 - last-touch tick for LRU and TTL
 
 Dirty-region invalidation removes entries whose touched clusters overlap the dirty set. Runtime cache limits are pulled from `HpaPathfindingConfig` every frame so BRP edits to `cache_capacity` and `cache_ttl_frames` take effect immediately.
+
+Clearance is part of the cache key and async dedup key. A path solved for a small agent is therefore never reused accidentally for a larger agent that needs wider corridors.
 
 ## Debug Layout
 

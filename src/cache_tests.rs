@@ -12,6 +12,7 @@ fn cache_key(index: i32) -> PathCacheKey {
         start: GridCoord::new(index, 0, 0),
         goal: GridCoord::new(index + 1, 0, 0),
         filter: PathFilterId(0),
+        clearance: 0,
         mode: PathQueryMode::Auto,
         allow_partial: false,
         overlay_signature: 0,

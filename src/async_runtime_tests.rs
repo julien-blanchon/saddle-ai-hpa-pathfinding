@@ -169,3 +169,69 @@ fn obstacle_changes_invalidate_and_replan_paths() {
     assert!(!replanned.corridor.contains(&GridCoord::new(4, 2, 0)));
     assert!(stats.total_queries_invalidated > 0);
 }
+
+#[test]
+fn ecs_queries_respect_agent_clearance_overrides() {
+    let config = HpaPathfindingConfig {
+        grid_dimensions: UVec3::new(10, 8, 1),
+        neighborhood: NeighborhoodMode::Cardinal2d,
+        max_queries_per_frame: 4,
+        ..default()
+    };
+    let mut grid = GridStorage::new(
+        config.grid_dimensions,
+        Vec3::ZERO,
+        1.0,
+        WorldRoundingPolicy::Floor,
+    );
+    for y in 0..8 {
+        grid.set_walkable(GridCoord::new(4, y, 0), false);
+    }
+    grid.set_walkable(GridCoord::new(4, 1, 0), true);
+    grid.set_walkable(GridCoord::new(4, 5, 0), true);
+    grid.set_walkable(GridCoord::new(4, 6, 0), true);
+
+    let mut app = App::new();
+    app.add_plugins(MinimalPlugins);
+    app.insert_resource(config.clone());
+    app.insert_resource(PathfindingGrid::new(grid, config));
+    app.add_plugins(crate::HpaPathfindingPlugin::default());
+
+    let small_agent = app
+        .world_mut()
+        .spawn((
+            Name::new("Small Agent"),
+            Transform::from_translation(Vec3::new(1.5, 2.5, 0.0)),
+            PathfindingAgent::default(),
+            PathRequest::new(GridCoord::new(8, 2, 0)),
+        ))
+        .id();
+    let large_agent = app
+        .world_mut()
+        .spawn((
+            Name::new("Large Agent"),
+            Transform::from_translation(Vec3::new(1.5, 2.5, 0.0)),
+            PathfindingAgent {
+                clearance: 2,
+                ..default()
+            },
+            PathRequest::new(GridCoord::new(8, 2, 0)),
+        ))
+        .id();
+
+    for _ in 0..96 {
+        app.update();
+        if app.world().entity(small_agent).contains::<ComputedPath>()
+            && app.world().entity(large_agent).contains::<ComputedPath>()
+        {
+            break;
+        }
+    }
+
+    let small_path = app.world().get::<ComputedPath>(small_agent).unwrap();
+    let large_path = app.world().get::<ComputedPath>(large_agent).unwrap();
+
+    assert!(small_path.corridor.contains(&GridCoord::new(4, 1, 0)));
+    assert!(!large_path.corridor.contains(&GridCoord::new(4, 1, 0)));
+    assert!(large_path.corridor.contains(&GridCoord::new(4, 5, 0)));
+}

@@ -1,23 +1,106 @@
 use saddle_ai_hpa_pathfinding_example_support as support;
 
-use saddle_ai_hpa_pathfinding::{GridCoord, PathFilterProfile, PathQueryMode, find_path};
+use bevy::prelude::*;
+use saddle_ai_hpa_pathfinding::{
+    ComputedPath, GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
+};
+
+#[derive(Component)]
+struct GoalMarker;
+
+#[derive(Component)]
+struct LayeredAgent;
+
+const LAYOUT: support::ExampleLayout = support::ExampleLayout::Layered { spacing_cells: 2.0 };
 
 fn main() {
-    let path_grid = support::build_layered_grid();
-    let path = find_path(
-        path_grid.snapshot(),
-        GridCoord::new(2, 2, 0),
-        GridCoord::new(12, 12, 1),
-        &PathFilterProfile::default(),
-        PathQueryMode::Auto,
-        false,
-        &[],
-    )
-    .expect("layered path should exist");
+    let grid = support::build_layered_grid();
+    let config = grid.snapshot.config.clone();
 
-    println!(
-        "layered path end={:?} touched_clusters={}",
-        path.corridor.last(),
-        path.touched_clusters.len()
+    let mut app = App::new();
+    app.insert_resource(config);
+    app.insert_resource(grid);
+    app.insert_resource(support::HpaExamplePane {
+        goal_x: 12,
+        goal_y: 12,
+        goal_layer: 1,
+        draw_portals: true,
+        ..default()
+    });
+    support::configure_visual_app(&mut app, "hpa pathfinding: layered 2.5d");
+    app.add_plugins(HpaPathfindingPlugin::default());
+    app.add_systems(Startup, setup);
+    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(Update, (sync_pane, sync_monitors));
+    app.run();
+}
+
+fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::HpaExamplePane>) {
+    support::spawn_grid_camera(&mut commands);
+    support::spawn_demo_backdrop(
+        &mut commands,
+        grid.as_ref(),
+        LAYOUT,
+        "Layered 2.5D Route",
+        "Each board is one layer. The route uses an explicit stair transition between layers instead of pretending the space is flat.",
     );
+    support::spawn_grid_tiles(&mut commands, grid.as_ref(), LAYOUT, None);
+    support::spawn_layer_labels(&mut commands, grid.as_ref(), LAYOUT);
+
+    let goal = support::clamp_goal_to_grid(grid.as_ref(), &pane);
+    let goal_marker = support::spawn_goal_marker(
+        &mut commands,
+        grid.as_ref(),
+        LAYOUT,
+        "Upper Goal",
+        goal,
+        Color::srgb(0.97, 0.85, 0.28),
+    );
+    let agent = support::spawn_agent_sprite(
+        &mut commands,
+        grid.as_ref(),
+        LAYOUT,
+        "Layered Agent",
+        GridCoord::new(2, 2, 0),
+        Color::srgb(0.34, 0.86, 0.96),
+    );
+
+    commands.entity(goal_marker).insert(GoalMarker);
+    commands.entity(agent).insert((
+        LayeredAgent,
+        PathfindingAgent::default(),
+        PathRequest::new(goal),
+    ));
+}
+
+fn sync_pane(
+    pane: Res<support::HpaExamplePane>,
+    grid: Res<PathfindingGrid>,
+    mut goals: Query<&mut Transform, With<GoalMarker>>,
+    mut agents: Query<(&mut PathfindingAgent, &mut PathRequest), With<LayeredAgent>>,
+) {
+    if !pane.is_changed() {
+        return;
+    }
+
+    let goal = support::clamp_goal_to_grid(grid.as_ref(), &pane);
+    for mut transform in &mut goals {
+        transform.translation = support::grid_visual_translation(grid.as_ref(), LAYOUT, goal, 8.0);
+    }
+    for (mut agent, mut request) in &mut agents {
+        agent.clearance = pane.clearance.max(0) as u16;
+        request.goal = goal;
+    }
+}
+
+fn sync_monitors(
+    mut pane: ResMut<support::HpaExamplePane>,
+    paths: Query<&ComputedPath, With<LayeredAgent>>,
+) {
+    let Ok(path) = paths.single() else {
+        return;
+    };
+    pane.corridor_len = path.corridor.len() as u32;
+    pane.waypoint_count = path.waypoints.len() as u32;
+    pane.total_cost = path.total_cost;
 }
