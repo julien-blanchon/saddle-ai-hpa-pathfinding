@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script>
+			(() => {
+				document.documentElement.classList.add('js');
+				const storageKey = 'docs-theme';
+				const storedTheme = localStorage.getItem(storageKey);
+				const isDark =
+					storedTheme === 'dark' ||
+					(storedTheme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+				document.documentElement.classList.toggle('dark', isDark);
+				document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+			})();
+		</script>
+		<link href="../../_app/immutable/entry/start.B2QQRaHp.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/DWVG1D5a.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/D6rU7RKI.js" rel="modulepreload">
+		<link href="../../_app/immutable/entry/app.Bap_QUSz.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/D2PL5qU_.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/DsnmJJEf.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/CGbRUU1n.js" rel="modulepreload">
+		<link href="../../_app/immutable/nodes/0.Dv33oXHi.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/B51qzx9S.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/rB8wQHEt.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/D3udy8KQ.js" rel="modulepreload">
+		<link href="../../_app/immutable/nodes/2.1tL1ZGrn.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/CUO_3b6O.js" rel="modulepreload">
+		<link href="../../_app/immutable/nodes/5.BOp3_yHr.js" rel="modulepreload">
+		<link href="../../_app/immutable/chunks/O7QY0ZL7.js" rel="modulepreload">
+		<!--12qhfyh--><meta name="theme-color" content="#ffffff"/> <link rel="icon" type="image/svg+xml" href="../../favicon.svg"/> <meta name="description" content="Hierarchical pathfinding for large 2D, 2.5D, and 3D Bevy grids"/><!----><!--1bpnej--><!--[0--><meta name="description" content="Architecture documentation"/><!--]--><!----><title>Architecture - saddle-ai-hpa-pathfinding</title>
+		<link href="../../_app/immutable/assets/manifest.DAGDUwuc.css" rel="stylesheet">
+		<link href="../../_app/immutable/assets/0.Cu___w4E.css" rel="stylesheet">
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents"><!--[--><!--[0--><!--[--><!--[0--><!--[--><main class="relative h-dvh bg-background text-foreground"><div class="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-background px-4 py-1.5 lg:hidden"><a href="../../" class="inline-flex items-center gap-1 px-2 py-2 text-sm tracking-tight text-foreground"><span class="font-medium tracking-tight text-foreground">saddle-ai-hpa-pathfinding</span></a> <button class="-mr-2 inline-flex size-10 items-center justify-center gap-2 rounded-sm text-sm whitespace-nowrap text-foreground transition-colors duration-150 ease-out hover:bg-background-muted lg:hidden" aria-label="Toggle menu"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="20" height="20" aria-hidden="true"><!--[-1--><!--]--><path d="M4 6H28V8H4z"></path><path d="M4 24H28V26H4z"></path><path d="M4 12H28V14H4z"></path><path d="M4 18H28V20H4z"></path></svg><!----></button></div> <!--[-1--><!--]--><!----> <div class="flex h-full w-full min-w-0 lg:grid lg:grid-cols-[22rem_minmax(0,1fr)] lg:pr-4 xl:grid-cols-[22rem_minmax(0,56rem)_18rem] xl:justify-center"><div class="hidden lg:block"><aside class="flex h-dvh flex-col bg-background" aria-label="Documentation sidebar"><div class="flex flex-col gap-4 p-4"><a href="../../" class="flex items-center gap-2"><span class="text-xl font-medium tracking-tight text-foreground">saddle-ai-hpa-pathfinding</span></a> <!--[0--><button type="button" class="group inset-shadow relative flex h-9 w-full items-center gap-2 rounded-sm bg-background-inset px-3 py-1.5 text-sm font-medium text-foreground-muted/70 transition-[color] duration-150 ease-out hover:text-foreground-muted"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="text-foreground-muted/70"><!--[-1--><!--]--><path d="M29,27.5859l-7.5521-7.5521a11.0177,11.0177,0,1,0-1.4141,1.4141L27.5859,29ZM4,13a9,9,0,1,1,9,9A9.01,9.01,0,0,1,4,13Z"></path></svg><!----> <span class="flex-1 text-left">Search...</span> <!--[0--><kbd class="card pointer-events-none relative hidden h-5 items-center gap-1 rounded-xs bg-background px-1.5 font-mono text-[10px] font-medium text-foreground-muted/70 select-none sm:flex">⌘ K</kbd><!--]--></button><!--]--><!----></div> <div class="relative flex flex-col overflow-hidden flex-1 svelte-1lcbi17"><div class="scrollbar-hide min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto p-4 svelte-1lcbi17" style="mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent);"><nav class="flex flex-col space-y-1" aria-label="Documentation pages"><h4 class="mb-2 ml-2 text-xs font-medium tracking-wide text-foreground-muted/70 uppercase">Docs</h4> <!--[--><!--[-1--><a href="../../" class="block rounded-sm px-3 py-1.5 text-sm tracking-normal transition-all duration-150 ease-out text-foreground-muted hover:bg-background-muted hover:text-foreground">Overview</a><!--]--><!--[0--><button class="flex w-full items-center justify-between rounded-sm px-3 py-1.5 text-sm font-medium tracking-normal transition-all duration-150 ease-out hover:bg-background-muted hover:text-foreground text-foreground-muted"><span>Documentation</span> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="size-4 transition-transform duration-150"><!--[-1--><!--]--><path d="M22 16 12 26 10.6 24.6 19.2 16 10.6 7.4 12 6z"></path></svg><!----></button> <!--[-1--><!--]--><!--]--><!--[0--><button class="flex w-full items-center justify-between rounded-sm px-3 py-1.5 text-sm font-medium tracking-normal transition-all duration-150 ease-out hover:bg-background-muted hover:text-foreground text-foreground-muted"><span>Demos</span> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="size-4 transition-transform duration-150"><!--[-1--><!--]--><path d="M22 16 12 26 10.6 24.6 19.2 16 10.6 7.4 12 6z"></path></svg><!----></button> <!--[-1--><!--]--><!--]--><!--]--></nav><!----></div></div><!----> <div class="flex items-center gap-1 p-4"><!--[0--><button type="button" class="group transition-scale inset-shadow relative inline-flex size-7 items-center justify-center rounded-sm bg-background-inset text-foreground duration-150 ease-out active:scale-[0.95]" aria-label="Switch to dark mode"><span class="sr-only">Switch to dark mode</span> <span class="transition-transform duration-150 ease-out"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true"><!--[-1--><!--]--><path d="M16,12a4,4,0,1,1-4,4,4.0045,4.0045,0,0,1,4-4m0-2a6,6,0,1,0,6,6,6,6,0,0,0-6-6Z" transform="translate(0 .005)"></path><path d="M6.854 5.375H8.854V10.333H6.854z" transform="rotate(-45 7.86 7.856)"></path><path d="M2 15.005H7V17.005000000000003H2z"></path><path d="M5.375 23.147H10.333V25.147H5.375z" transform="rotate(-45 7.86 24.149)"></path><path d="M15 25.005H17V30.005H15z"></path><path d="M23.147 21.668H25.147V26.625999999999998H23.147z" transform="rotate(-45 24.152 24.149)"></path><path d="M25 15.005H30V17.005000000000003H25z"></path><path d="M21.668 6.854H26.625999999999998V8.854H21.668z" transform="rotate(-45 24.152 7.856)"></path><path d="M15 2.005H17V7.005H15z"></path></svg><!----></span> <span class="absolute transition-transform duration-150 ease-out scale-0 blur-[2px]"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true"><!--[-1--><!--]--><path d="M13.5025,5.4136A15.0755,15.0755,0,0,0,25.096,23.6082a11.1134,11.1134,0,0,1-7.9749,3.3893c-.1385,0-.2782.0051-.4178,0A11.0944,11.0944,0,0,1,13.5025,5.4136M14.98,3a1.0024,1.0024,0,0,0-.1746.0156A13.0959,13.0959,0,0,0,16.63,28.9973c.1641.006.3282,0,.4909,0a13.0724,13.0724,0,0,0,10.702-5.5556,1.0094,1.0094,0,0,0-.7833-1.5644A13.08,13.08,0,0,1,15.8892,4.38,1.0149,1.0149,0,0,0,14.98,3Z"></path></svg><!----></span></button><!--]--> <!--[0--><a class="group transition-scale inset-shadow relative inline-flex size-7 cursor-pointer items-center justify-center rounded-sm bg-background-inset text-foreground duration-150 ease-out active:scale-[0.95]" href="https://github.com/julien-blanchon/saddle-ai-hpa-pathfinding" target="_blank" rel="noreferrer" aria-label="Open project repository (opens in a new tab)"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="size-4 flex-none"><!--[-1--><!--]--><path fill-rule="evenodd" d="M16,2a14,14,0,0,0-4.43,27.28c.7.13,1-.3,1-.67s0-1.21,0-2.38c-3.89.84-4.71-1.88-4.71-1.88A3.71,3.71,0,0,0,6.24,22.3c-1.27-.86.1-.85.1-.85A2.94,2.94,0,0,1,8.48,22.9a3,3,0,0,0,4.08,1.16,2.93,2.93,0,0,1,.88-1.87c-3.1-.36-6.37-1.56-6.37-6.92a5.4,5.4,0,0,1,1.44-3.76,5,5,0,0,1,.14-3.7s1.17-.38,3.85,1.43a13.3,13.3,0,0,1,7,0c2.67-1.81,3.84-1.43,3.84-1.43a5,5,0,0,1,.14,3.7,5.4,5.4,0,0,1,1.44,3.76c0,5.38-3.27,6.56-6.39,6.91a3.33,3.33,0,0,1,.95,2.59c0,1.87,0,3.38,0,3.84s.25.81,1,.67A14,14,0,0,0,16,2Z"></path></svg><!----></a><!--]--></div></aside><!----></div> <div class="inset-shadow relative mx-auto h-full w-full max-w-4xl min-w-0 overflow-hidden border border-border bg-background-inset pt-12 lg:my-4 lg:max-h-[calc(100dvh-2rem)] lg:overflow-visible lg:rounded-xl lg:pt-0"><div class="relative flex flex-col overflow-hidden mx-auto h-full w-full lg:max-h-[calc(100dvh-2rem)] svelte-1lcbi17"><div id="docs-content-container" class="scrollbar-hide min-h-0 w-full flex-1 overflow-x-hidden overflow-y-auto rounded-lg overscroll-none flex flex-col gap-8 px-4 py-8 lg:px-8 svelte-1lcbi17" style="mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent);"><section class="min-w-0 flex-1 space-y-8"><div class="space-y-4"><!--[-1--><!--]--> <h1 class="scroll-m-20 text-3xl font-medium tracking-tight text-foreground">Architecture</h1> <!--[0--><p class="max-w-4xl text-base font-normal tracking-normal text-foreground-muted">Architecture documentation</p><!--]--> <!--[0--><!--[0--><div class="relative z-20 mt-8 flex w-full gap-2 lg:hidden"><!--[0--><div class="inset-shadow w-full rounded-md bg-background-inset p-1.5"><button type="button" aria-live="polite" aria-disabled="false" class="card relative inline-flex h-9 w-full font-medium shrink-0 overflow-hidden items-center justify-center gap-2 rounded-sm bg-background px-4 py-2 text-sm whitespace-nowrap text-foreground transition-[background-color] duration-150 ease-out hover:bg-background-muted disabled:pointer-events-none disabled:opacity-50 has-[>svg]:px-3 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*=size-])]:size-4 flex-1"><span class="grid place-items-center" style="grid-template-areas: 'content';"><!----><span class="flex items-center gap-2 font-medium tracking-normal text-foreground will-change-transform" style="grid-area: content;"><!--[-1--><svg role="img" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="size-4 flex-none"><title>Markdown</title><path class="stroke-current" d="M1.212 5.5h21.576c.407 0 .712.317.712.679v11.549a.695.695 0 0 1-.712.677H1.212a.695.695 0 0 1-.712-.678V6.18c0-.362.305-.679.712-.679Z"></path><path class="fill-current" d="M3.03 15.96V7.946h2.425l2.424 2.946 2.424-2.946h2.424v8.014h-2.424v-4.596L7.88 14.31l-2.424-2.946v4.596H3.03Zm15.152 0-3.636-3.89h2.424V7.947h2.424v4.125h2.424l-3.636 3.889Z"></path></svg><!--]--> <span>Copy Markdown</span></span><!----></span></button></div><!--]--> <!--[0--><div class="inset-shadow relative rounded-md bg-background-inset p-1.5"><button id="mobile-doc-actions-menu-trigger" type="button" class="card relative inline-flex h-9 w-full font-medium shrink-0 overflow-hidden items-center justify-center gap-2 rounded-sm bg-background px-4 py-2 text-sm whitespace-nowrap text-foreground transition-[background-color] duration-150 ease-out hover:bg-background-muted disabled:pointer-events-none disabled:opacity-50 has-[>svg]:px-3 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*=size-])]:size-4 flex-1 w-auto! px-2.5!" aria-label="More actions" aria-haspopup="menu" aria-controls="mobile-doc-actions-menu" aria-expanded="false"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="size-4"><!--[-1--><!--]--><circle cx="8" cy="16" r="2"></circle><circle cx="16" cy="16" r="2"></circle><circle cx="24" cy="16" r="2"></circle></svg><!----></button> <!--[-1--><!--]--></div><!--]--></div><!--]--><!--]--></div> <hr class="text-border"/> <div><!--[--><article data-doc-content="" class="w-full max-w-4xl"><!----><h2>Overview</h2>
+<p><code>saddle-ai-hpa-pathfinding</code> is split into two layers:</p>
+<ol>
+<li>Pure pathfinding core<ul>
+<li>deterministic coordinate math</li>
+<li>grid storage and transitions</li>
+<li>hierarchy construction</li>
+<li>direct and hierarchical search</li>
+<li>cache and path validation</li>
+</ul>
+</li>
+<li>Bevy orchestration<ul>
+<li>plugin wiring</li>
+<li>async and sliced request lifecycle</li>
+<li>ECS publication and invalidation</li>
+<li>diagnostics and debug gizmos</li>
+</ul>
+</li>
+</ol>
+<p>The runtime keeps one committed snapshot in the public <code>PathfindingGrid</code> resource.</p>
+<ul>
+<li>ECS and pure sync queries read the committed snapshot directly.</li>
+<li>Async jobs clone that snapshot before leaving the main thread.</li>
+<li>Grid edits mutate the owned <code>GridStorage</code>, mark dirty regions, and then rebuild a fresh committed snapshot.</li>
+</ul>
+<p>The rebuild path reconstructs a fresh hierarchy snapshot from the current grid state after each dirty batch. The crate keeps the dirty surface explicit through <code>pending_dirty_clusters</code>, <code>cluster_versions</code>, and touched-cluster stamps on published paths.</p>
+<h2>Coordinate Model</h2>
+<ul>
+<li><code>GridCoord</code> is an integer <code>IVec3</code> wrapper.</li>
+<li><code>GridAabb</code> uses inclusive min/max coordinates.</li>
+<li>World-space mapping uses:<ul>
+<li><code>origin</code>: world-space corner of cell <code>(0, 0, 0)</code></li>
+<li><code>cell_size</code>: uniform cell edge length</li>
+<li><code>world_rounding</code>: explicit <code>Floor</code>, <code>Round</code>, or <code>Ceil</code></li>
+</ul>
+</li>
+</ul>
+<p>Grid coordinates are deterministic because the rounding policy is part of the grid config and never inferred implicitly.</p>
+<h2>Grid Model</h2>
+<p>Each cell stores:</p>
+<ul>
+<li>walkability</li>
+<li>area type</li>
+<li>traversal mask bits</li>
+<li>base movement cost</li>
+<li>clearance</li>
+</ul>
+<p>Optional explicit transitions connect one cell to another with a cost and optional one-way behavior. These model stairs, ladders, teleports, elevators, or vertical links without hard-coding genre-specific semantics.</p>
+<h2>Hierarchy Model</h2>
+<p>Level 1 is built directly from cells:</p>
+<ol>
+<li>Partition the world into fixed-size clusters.</li>
+<li>Scan every border face between adjacent clusters.</li>
+<li>Flood-fill passable border cells into entrance groups.</li>
+<li>Merge long contiguous groups into one or two representative portal pairs.</li>
+<li>Create portal endpoint nodes on both sides of the border.</li>
+<li>Precompute intra-cluster paths between portal endpoints.</li>
+</ol>
+<p>Levels 2 and 3 are recursive shortcut layers:</p>
+<ul>
+<li>higher clusters are fixed 2x scale aggregates of the lower level</li>
+<li>higher-level portal nodes are anchored to lower-level portal endpoints</li>
+<li>projection edges connect higher-level nodes to their lower-level anchors with zero travel cost</li>
+<li>higher-level intra-cluster edges store lower-level node routes</li>
+</ul>
+<p>This keeps the public hierarchy explicit and debugable while avoiding hidden graph mutation during query time.</p>
+<h2>Query Pipeline</h2>
+<p>The default <code>query_path</code> flow is:</p>
+<ol>
+<li>Convert world or cell start/goal to <code>GridCoord</code>.</li>
+<li>Apply any request-scoped <code>PathCostOverlay</code> regions to the traversal-cost probe for that query only.</li>
+<li>Use direct A* if the request is short-range or both points lie in the same level-1 cluster.</li>
+<li>Otherwise connect temporary start/goal nodes to the level-1 portal nodes in their clusters.</li>
+<li>Run A* over the union graph:<ul>
+<li>level-1 nodes</li>
+<li>level-2 / level-3 shortcut nodes</li>
+<li>temporary start/goal edges</li>
+</ul>
+</li>
+<li>Refine the chosen abstract route:<ul>
+<li>projection edges collapse away</li>
+<li>higher-level shortcut edges expand into lower-level node routes</li>
+<li>level-1 intra-cluster edges expand into cell corridors</li>
+</ul>
+</li>
+<li>Validate the corridor, then optionally smooth it.</li>
+<li>Record touched cluster versions plus the overlay signature for invalidation and caching.</li>
+</ol>
+<p><code>estimate_cost</code> returns a lightweight cost probe using the current hierarchy path when available and falls back to direct search otherwise.</p>
+<p><code>query_path_sliced</code> keeps the direct-grid open list and parent map alive across frames and expands only a bounded number of low-level nodes per call. That keeps the runtime WASM-safe and frame-budgeted without blocking the main thread.</p>
+<h2>Flow-Field Pipeline</h2>
+<p><code>build_flow_field</code> uses the committed snapshot but solves the graph in reverse from one goal:</p>
+<ol>
+<li>Validate or relocate the requested goal to the nearest passable cell.</li>
+<li>Run a Dijkstra-style reverse expansion over low-level neighbors and incoming explicit transitions.</li>
+<li>Record the best integration cost for every reachable cell.</li>
+<li>Pick the cheapest reachable neighbor of each cell as its <code>next</code> pointer.</li>
+</ol>
+<p>The result is a reusable field that many agents can sample cheaply without issuing independent path queries.</p>
+<p>Flow-field generation respects:</p>
+<ul>
+<li>the active filter profile</li>
+<li>request-local overlays</li>
+<li>clearance-aware variants through <code>build_flow_field_with_clearance</code></li>
+</ul>
+<h2>Filter Model</h2>
+<p>Every request carries either a registered <code>PathFilterId</code> or an inline <code>PathFilterProfile</code>.</p>
+<p>The filter can:</p>
+<ul>
+<li>exclude traversal-mask bits</li>
+<li>allow only specific traversal-mask bits</li>
+<li>override area costs</li>
+<li>enforce agent clearance</li>
+<li>add temporary cost overlays by region</li>
+</ul>
+<p>Level-1 intra-cluster routes are computed against the requesting filter when temporary start/goal hookups are built. Higher-level shortcut edges are conservative in pass 1: they recursively expand into stored lower-level routes instead of running a fresh super-cluster repair.</p>
+<h2>Dynamic Rebuild Flow</h2>
+<p>Edits are region-based:</p>
+<ol>
+<li>A system mutates the <code>PathfindingGrid</code> directly or adds/removes a <code>PathfindingObstacle</code>.</li>
+<li>Manual edits can emit <code>GridRegionChanged</code>; obstacle edits are synchronized into blocked cells by the crate before rebuilds.</li>
+<li>Dirty level-1 clusters are computed from the region overlap.</li>
+<li>Parent clusters on higher levels are marked dirty automatically.</li>
+<li><code>detect_grid_changes</code> consumes up to <code>rebuild_budget_per_frame</code> dirty cluster stamps.</li>
+<li>After each consumed batch, the crate rebuilds a fresh committed hierarchy snapshot, reapplies the carried cluster versions, and invalidates any cache entry whose touched clusters overlap the rebuilt set.</li>
+</ol>
+<p>Cached paths that touch dirty level-1 clusters are dropped immediately. Already published <code>ComputedPath</code> corridors are invalidated on the next validation pass if their touched cluster versions no longer match.</p>
+<h2>Async and Sliced Queries</h2>
+<p>The ECS shell supports three execution modes:</p>
+<ul>
+<li>direct sync</li>
+<li>background async on <code>AsyncComputeTaskPool</code></li>
+<li>sliced direct-grid search across frames</li>
+</ul>
+<p>Async tasks clone the committed <code>PathfindingSnapshot</code>, never borrow ECS state directly, and return pure results. The ECS request component carries per-request overlays into those jobs, and publication compares the job&#39;s <code>PathVersion</code> with the current committed version.</p>
+<p>Sliced mode keeps its own resumable search state resource so large requests can respect frame budgets even without worker threads or on WASM.</p>
+<h2>Cache and Validation</h2>
+<p>The path cache is exact-keyed:</p>
+<ul>
+<li>start</li>
+<li>goal</li>
+<li>query mode</li>
+<li>filter id</li>
+<li>partial flag</li>
+<li>overlay signature</li>
+<li>committed snapshot version</li>
+</ul>
+<p>Each entry stores:</p>
+<ul>
+<li>final corridor</li>
+<li>world-space waypoints</li>
+<li>total cost</li>
+<li>touched level-1 cluster version stamps</li>
+<li>last-touch tick for LRU and TTL</li>
+</ul>
+<p>Dirty-region invalidation removes entries whose touched clusters overlap the dirty set. Runtime cache limits are pulled from <code>HpaPathfindingConfig</code> every frame so BRP edits to <code>cache_capacity</code> and <code>cache_ttl_frames</code> take effect immediately.</p>
+<p>Clearance is part of the cache key and async dedup key. A path solved for a small agent is therefore never reused accidentally for a larger agent that needs wider corridors.</p>
+<h2>Debug Layout</h2>
+<p>Debug layers are controlled through <code>HpaPathfindingConfig</code> flags:</p>
+<ul>
+<li>grid cells</li>
+<li>cluster bounds per level</li>
+<li>portal nodes</li>
+<li>abstract graph edges</li>
+<li>active paths</li>
+<li>dirty clusters</li>
+<li>cost heatmap</li>
+</ul>
+<p>The heatmap renders base cell costs through the default filter profile (<code>PathFilterId(0)</code>). Query-time overlays remain request-local and are not merged into one global heatmap view.</p>
+<p>The plugin only adds the gizmo draw system when the app already has Bevy gizmo resources, so logic-only tests and minimal apps can still use the runtime safely.</p>
+<!----></article> <!----><!--]--><!----> <!--[-1--><!--]--><!----></div></section><!----></div></div><!----></div> <aside class="hidden xl:block xl:w-full xl:py-8 xl:pr-4 xl:pl-4" aria-label="Table of contents and document actions"><div class="sticky top-8 flex h-full max-h-[calc(100dvh-4rem)] min-h-0 flex-col"><!--[0--><div class="min-h-0 flex-1"><div class="contents"><!--[-1--><div class="hidden text-sm tracking-normal text-foreground-muted/70 lg:block">No headings</div><!--]--></div><!----></div><!--]--> <!--[0--><!--[0--><div class="mt-auto"><div class="flex flex-col gap-1 text-sm"><!--[0--><button type="button" aria-live="polite" aria-disabled="false" class="group/option flex items-center gap-2 overflow-hidden rounded-sm px-3 py-1.5 text-left font-medium tracking-normal text-foreground-muted transition-colors duration-150 ease-out hover:bg-background-muted hover:text-foreground"><span class="grid" style="grid-template-areas: 'content';"><!----><span class="flex items-center gap-2" style="grid-area: content;"><!--[-1--><svg role="img" viewBox="0 0 24 24" fill="none" aria-hidden="true" class="size-4 flex-none"><title>Markdown</title><path class="stroke-current" d="M1.212 5.5h21.576c.407 0 .712.317.712.679v11.549a.695.695 0 0 1-.712.677H1.212a.695.695 0 0 1-.712-.678V6.18c0-.362.305-.679.712-.679Z"></path><path class="fill-current" d="M3.03 15.96V7.946h2.425l2.424 2.946 2.424-2.946h2.424v8.014h-2.424v-4.596L7.88 14.31l-2.424-2.946v4.596H3.03Zm15.152 0-3.636-3.89h2.424V7.947h2.424v4.125h2.424l-3.636 3.889Z"></path></svg><!--]--> <span>Copy as Markdown</span></span><!----></span></button><!--]--> <!--[0--><a class="group/option flex items-center gap-2 rounded-sm px-3 py-1.5 text-left font-medium tracking-normal text-foreground-muted transition-colors duration-150 ease-out hover:bg-background-muted hover:text-foreground" href="https://github.com/julien-blanchon/saddle-ai-hpa-pathfinding/blob/main/docs//saddle-ai-hpa-pathfinding/docs/architecture.md" target="_blank" rel="noreferrer"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="size-4 flex-none"><!--[-1--><!--]--><path fill-rule="evenodd" d="M16,2a14,14,0,0,0-4.43,27.28c.7.13,1-.3,1-.67s0-1.21,0-2.38c-3.89.84-4.71-1.88-4.71-1.88A3.71,3.71,0,0,0,6.24,22.3c-1.27-.86.1-.85.1-.85A2.94,2.94,0,0,1,8.48,22.9a3,3,0,0,0,4.08,1.16,2.93,2.93,0,0,1,.88-1.87c-3.1-.36-6.37-1.56-6.37-6.92a5.4,5.4,0,0,1,1.44-3.76,5,5,0,0,1,.14-3.7s1.17-.38,3.85,1.43a13.3,13.3,0,0,1,7,0c2.67-1.81,3.84-1.43,3.84-1.43a5,5,0,0,1,.14,3.7,5.4,5.4,0,0,1,1.44,3.76c0,5.38-3.27,6.56-6.39,6.91a3.33,3.33,0,0,1,.95,2.59c0,1.87,0,3.38,0,3.84s.25.81,1,.67A14,14,0,0,0,16,2Z"></path></svg><!----> <span>Open in GitHub</span> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="currentColor" preserveAspectRatio="xMidYMid meet" width="16" height="16" aria-hidden="true" class="ml-auto size-4 flex-none"><!--[-1--><!--]--><path d="M26,28H6a2.0027,2.0027,0,0,1-2-2V6A2.0027,2.0027,0,0,1,6,4H16V6H6V26H26V16h2V26A2.0027,2.0027,0,0,1,26,28Z"></path><path d="M20 2 20 4 26.586 4 18 12.586 19.414 14 28 5.414 28 12 30 12 30 2 20 2z"></path></svg><!----> <span class="sr-only">(opens in a new tab)</span></a><!--]--> <!--[-1--><!--]--> <!--[-1--><!--]--></div></div><!--]--><!--]--></div></aside></div></main><!--]--><!--]--><!----> <!--[0--><!--[-1--><!--]--><!--]--><!--]--><!--]--> <!--[-1--><!--]--><!--]-->
+			
+			<script>
+				{
+					__sveltekit_13ehm63 = {
+						base: new URL("../..", location).pathname.slice(0, -1),
+						assets: "/saddle-ai-hpa-pathfinding"
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("../../_app/immutable/entry/start.B2QQRaHp.js"),
+						import("../../_app/immutable/entry/app.Bap_QUSz.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element, {
+							node_ids: [0, 2, 5],
+							data: [null,null,{type:"data",data:{html:"\u003Ch2>Overview\u003C/h2>\n\u003Cp>\u003Ccode>saddle-ai-hpa-pathfinding\u003C/code> is split into two layers:\u003C/p>\n\u003Col>\n\u003Cli>Pure pathfinding core\u003Cul>\n\u003Cli>deterministic coordinate math\u003C/li>\n\u003Cli>grid storage and transitions\u003C/li>\n\u003Cli>hierarchy construction\u003C/li>\n\u003Cli>direct and hierarchical search\u003C/li>\n\u003Cli>cache and path validation\u003C/li>\n\u003C/ul>\n\u003C/li>\n\u003Cli>Bevy orchestration\u003Cul>\n\u003Cli>plugin wiring\u003C/li>\n\u003Cli>async and sliced request lifecycle\u003C/li>\n\u003Cli>ECS publication and invalidation\u003C/li>\n\u003Cli>diagnostics and debug gizmos\u003C/li>\n\u003C/ul>\n\u003C/li>\n\u003C/ol>\n\u003Cp>The runtime keeps one committed snapshot in the public \u003Ccode>PathfindingGrid\u003C/code> resource.\u003C/p>\n\u003Cul>\n\u003Cli>ECS and pure sync queries read the committed snapshot directly.\u003C/li>\n\u003Cli>Async jobs clone that snapshot before leaving the main thread.\u003C/li>\n\u003Cli>Grid edits mutate the owned \u003Ccode>GridStorage\u003C/code>, mark dirty regions, and then rebuild a fresh committed snapshot.\u003C/li>\n\u003C/ul>\n\u003Cp>The rebuild path reconstructs a fresh hierarchy snapshot from the current grid state after each dirty batch. The crate keeps the dirty surface explicit through \u003Ccode>pending_dirty_clusters\u003C/code>, \u003Ccode>cluster_versions\u003C/code>, and touched-cluster stamps on published paths.\u003C/p>\n\u003Ch2>Coordinate Model\u003C/h2>\n\u003Cul>\n\u003Cli>\u003Ccode>GridCoord\u003C/code> is an integer \u003Ccode>IVec3\u003C/code> wrapper.\u003C/li>\n\u003Cli>\u003Ccode>GridAabb\u003C/code> uses inclusive min/max coordinates.\u003C/li>\n\u003Cli>World-space mapping uses:\u003Cul>\n\u003Cli>\u003Ccode>origin\u003C/code>: world-space corner of cell \u003Ccode>(0, 0, 0)\u003C/code>\u003C/li>\n\u003Cli>\u003Ccode>cell_size\u003C/code>: uniform cell edge length\u003C/li>\n\u003Cli>\u003Ccode>world_rounding\u003C/code>: explicit \u003Ccode>Floor\u003C/code>, \u003Ccode>Round\u003C/code>, or \u003Ccode>Ceil\u003C/code>\u003C/li>\n\u003C/ul>\n\u003C/li>\n\u003C/ul>\n\u003Cp>Grid coordinates are deterministic because the rounding policy is part of the grid config and never inferred implicitly.\u003C/p>\n\u003Ch2>Grid Model\u003C/h2>\n\u003Cp>Each cell stores:\u003C/p>\n\u003Cul>\n\u003Cli>walkability\u003C/li>\n\u003Cli>area type\u003C/li>\n\u003Cli>traversal mask bits\u003C/li>\n\u003Cli>base movement cost\u003C/li>\n\u003Cli>clearance\u003C/li>\n\u003C/ul>\n\u003Cp>Optional explicit transitions connect one cell to another with a cost and optional one-way behavior. These model stairs, ladders, teleports, elevators, or vertical links without hard-coding genre-specific semantics.\u003C/p>\n\u003Ch2>Hierarchy Model\u003C/h2>\n\u003Cp>Level 1 is built directly from cells:\u003C/p>\n\u003Col>\n\u003Cli>Partition the world into fixed-size clusters.\u003C/li>\n\u003Cli>Scan every border face between adjacent clusters.\u003C/li>\n\u003Cli>Flood-fill passable border cells into entrance groups.\u003C/li>\n\u003Cli>Merge long contiguous groups into one or two representative portal pairs.\u003C/li>\n\u003Cli>Create portal endpoint nodes on both sides of the border.\u003C/li>\n\u003Cli>Precompute intra-cluster paths between portal endpoints.\u003C/li>\n\u003C/ol>\n\u003Cp>Levels 2 and 3 are recursive shortcut layers:\u003C/p>\n\u003Cul>\n\u003Cli>higher clusters are fixed 2x scale aggregates of the lower level\u003C/li>\n\u003Cli>higher-level portal nodes are anchored to lower-level portal endpoints\u003C/li>\n\u003Cli>projection edges connect higher-level nodes to their lower-level anchors with zero travel cost\u003C/li>\n\u003Cli>higher-level intra-cluster edges store lower-level node routes\u003C/li>\n\u003C/ul>\n\u003Cp>This keeps the public hierarchy explicit and debugable while avoiding hidden graph mutation during query time.\u003C/p>\n\u003Ch2>Query Pipeline\u003C/h2>\n\u003Cp>The default \u003Ccode>query_path\u003C/code> flow is:\u003C/p>\n\u003Col>\n\u003Cli>Convert world or cell start/goal to \u003Ccode>GridCoord\u003C/code>.\u003C/li>\n\u003Cli>Apply any request-scoped \u003Ccode>PathCostOverlay\u003C/code> regions to the traversal-cost probe for that query only.\u003C/li>\n\u003Cli>Use direct A* if the request is short-range or both points lie in the same level-1 cluster.\u003C/li>\n\u003Cli>Otherwise connect temporary start/goal nodes to the level-1 portal nodes in their clusters.\u003C/li>\n\u003Cli>Run A* over the union graph:\u003Cul>\n\u003Cli>level-1 nodes\u003C/li>\n\u003Cli>level-2 / level-3 shortcut nodes\u003C/li>\n\u003Cli>temporary start/goal edges\u003C/li>\n\u003C/ul>\n\u003C/li>\n\u003Cli>Refine the chosen abstract route:\u003Cul>\n\u003Cli>projection edges collapse away\u003C/li>\n\u003Cli>higher-level shortcut edges expand into lower-level node routes\u003C/li>\n\u003Cli>level-1 intra-cluster edges expand into cell corridors\u003C/li>\n\u003C/ul>\n\u003C/li>\n\u003Cli>Validate the corridor, then optionally smooth it.\u003C/li>\n\u003Cli>Record touched cluster versions plus the overlay signature for invalidation and caching.\u003C/li>\n\u003C/ol>\n\u003Cp>\u003Ccode>estimate_cost\u003C/code> returns a lightweight cost probe using the current hierarchy path when available and falls back to direct search otherwise.\u003C/p>\n\u003Cp>\u003Ccode>query_path_sliced\u003C/code> keeps the direct-grid open list and parent map alive across frames and expands only a bounded number of low-level nodes per call. That keeps the runtime WASM-safe and frame-budgeted without blocking the main thread.\u003C/p>\n\u003Ch2>Flow-Field Pipeline\u003C/h2>\n\u003Cp>\u003Ccode>build_flow_field\u003C/code> uses the committed snapshot but solves the graph in reverse from one goal:\u003C/p>\n\u003Col>\n\u003Cli>Validate or relocate the requested goal to the nearest passable cell.\u003C/li>\n\u003Cli>Run a Dijkstra-style reverse expansion over low-level neighbors and incoming explicit transitions.\u003C/li>\n\u003Cli>Record the best integration cost for every reachable cell.\u003C/li>\n\u003Cli>Pick the cheapest reachable neighbor of each cell as its \u003Ccode>next\u003C/code> pointer.\u003C/li>\n\u003C/ol>\n\u003Cp>The result is a reusable field that many agents can sample cheaply without issuing independent path queries.\u003C/p>\n\u003Cp>Flow-field generation respects:\u003C/p>\n\u003Cul>\n\u003Cli>the active filter profile\u003C/li>\n\u003Cli>request-local overlays\u003C/li>\n\u003Cli>clearance-aware variants through \u003Ccode>build_flow_field_with_clearance\u003C/code>\u003C/li>\n\u003C/ul>\n\u003Ch2>Filter Model\u003C/h2>\n\u003Cp>Every request carries either a registered \u003Ccode>PathFilterId\u003C/code> or an inline \u003Ccode>PathFilterProfile\u003C/code>.\u003C/p>\n\u003Cp>The filter can:\u003C/p>\n\u003Cul>\n\u003Cli>exclude traversal-mask bits\u003C/li>\n\u003Cli>allow only specific traversal-mask bits\u003C/li>\n\u003Cli>override area costs\u003C/li>\n\u003Cli>enforce agent clearance\u003C/li>\n\u003Cli>add temporary cost overlays by region\u003C/li>\n\u003C/ul>\n\u003Cp>Level-1 intra-cluster routes are computed against the requesting filter when temporary start/goal hookups are built. Higher-level shortcut edges are conservative in pass 1: they recursively expand into stored lower-level routes instead of running a fresh super-cluster repair.\u003C/p>\n\u003Ch2>Dynamic Rebuild Flow\u003C/h2>\n\u003Cp>Edits are region-based:\u003C/p>\n\u003Col>\n\u003Cli>A system mutates the \u003Ccode>PathfindingGrid\u003C/code> directly or adds/removes a \u003Ccode>PathfindingObstacle\u003C/code>.\u003C/li>\n\u003Cli>Manual edits can emit \u003Ccode>GridRegionChanged\u003C/code>; obstacle edits are synchronized into blocked cells by the crate before rebuilds.\u003C/li>\n\u003Cli>Dirty level-1 clusters are computed from the region overlap.\u003C/li>\n\u003Cli>Parent clusters on higher levels are marked dirty automatically.\u003C/li>\n\u003Cli>\u003Ccode>detect_grid_changes\u003C/code> consumes up to \u003Ccode>rebuild_budget_per_frame\u003C/code> dirty cluster stamps.\u003C/li>\n\u003Cli>After each consumed batch, the crate rebuilds a fresh committed hierarchy snapshot, reapplies the carried cluster versions, and invalidates any cache entry whose touched clusters overlap the rebuilt set.\u003C/li>\n\u003C/ol>\n\u003Cp>Cached paths that touch dirty level-1 clusters are dropped immediately. Already published \u003Ccode>ComputedPath\u003C/code> corridors are invalidated on the next validation pass if their touched cluster versions no longer match.\u003C/p>\n\u003Ch2>Async and Sliced Queries\u003C/h2>\n\u003Cp>The ECS shell supports three execution modes:\u003C/p>\n\u003Cul>\n\u003Cli>direct sync\u003C/li>\n\u003Cli>background async on \u003Ccode>AsyncComputeTaskPool\u003C/code>\u003C/li>\n\u003Cli>sliced direct-grid search across frames\u003C/li>\n\u003C/ul>\n\u003Cp>Async tasks clone the committed \u003Ccode>PathfindingSnapshot\u003C/code>, never borrow ECS state directly, and return pure results. The ECS request component carries per-request overlays into those jobs, and publication compares the job&#39;s \u003Ccode>PathVersion\u003C/code> with the current committed version.\u003C/p>\n\u003Cp>Sliced mode keeps its own resumable search state resource so large requests can respect frame budgets even without worker threads or on WASM.\u003C/p>\n\u003Ch2>Cache and Validation\u003C/h2>\n\u003Cp>The path cache is exact-keyed:\u003C/p>\n\u003Cul>\n\u003Cli>start\u003C/li>\n\u003Cli>goal\u003C/li>\n\u003Cli>query mode\u003C/li>\n\u003Cli>filter id\u003C/li>\n\u003Cli>partial flag\u003C/li>\n\u003Cli>overlay signature\u003C/li>\n\u003Cli>committed snapshot version\u003C/li>\n\u003C/ul>\n\u003Cp>Each entry stores:\u003C/p>\n\u003Cul>\n\u003Cli>final corridor\u003C/li>\n\u003Cli>world-space waypoints\u003C/li>\n\u003Cli>total cost\u003C/li>\n\u003Cli>touched level-1 cluster version stamps\u003C/li>\n\u003Cli>last-touch tick for LRU and TTL\u003C/li>\n\u003C/ul>\n\u003Cp>Dirty-region invalidation removes entries whose touched clusters overlap the dirty set. Runtime cache limits are pulled from \u003Ccode>HpaPathfindingConfig\u003C/code> every frame so BRP edits to \u003Ccode>cache_capacity\u003C/code> and \u003Ccode>cache_ttl_frames\u003C/code> take effect immediately.\u003C/p>\n\u003Cp>Clearance is part of the cache key and async dedup key. A path solved for a small agent is therefore never reused accidentally for a larger agent that needs wider corridors.\u003C/p>\n\u003Ch2>Debug Layout\u003C/h2>\n\u003Cp>Debug layers are controlled through \u003Ccode>HpaPathfindingConfig\u003C/code> flags:\u003C/p>\n\u003Cul>\n\u003Cli>grid cells\u003C/li>\n\u003Cli>cluster bounds per level\u003C/li>\n\u003Cli>portal nodes\u003C/li>\n\u003Cli>abstract graph edges\u003C/li>\n\u003Cli>active paths\u003C/li>\n\u003Cli>dirty clusters\u003C/li>\n\u003Cli>cost heatmap\u003C/li>\n\u003C/ul>\n\u003Cp>The heatmap renders base cell costs through the default filter profile (\u003Ccode>PathFilterId(0)\u003C/code>). Query-time overlays remain request-local and are not merged into one global heatmap view.\u003C/p>\n\u003Cp>The plugin only adds the gizmo draw system when the app already has Bevy gizmo resources, so logic-only tests and minimal apps can still use the runtime safely.\u003C/p>\n",title:"Architecture",description:"Architecture documentation",rawMarkdown:"## Overview\n\n`saddle-ai-hpa-pathfinding` is split into two layers:\n\n1. Pure pathfinding core\n   - deterministic coordinate math\n   - grid storage and transitions\n   - hierarchy construction\n   - direct and hierarchical search\n   - cache and path validation\n2. Bevy orchestration\n   - plugin wiring\n   - async and sliced request lifecycle\n   - ECS publication and invalidation\n   - diagnostics and debug gizmos\n\nThe runtime keeps one committed snapshot in the public `PathfindingGrid` resource.\n\n- ECS and pure sync queries read the committed snapshot directly.\n- Async jobs clone that snapshot before leaving the main thread.\n- Grid edits mutate the owned `GridStorage`, mark dirty regions, and then rebuild a fresh committed snapshot.\n\nThe rebuild path reconstructs a fresh hierarchy snapshot from the current grid state after each dirty batch. The crate keeps the dirty surface explicit through `pending_dirty_clusters`, `cluster_versions`, and touched-cluster stamps on published paths.\n\n## Coordinate Model\n\n- `GridCoord` is an integer `IVec3` wrapper.\n- `GridAabb` uses inclusive min/max coordinates.\n- World-space mapping uses:\n  - `origin`: world-space corner of cell `(0, 0, 0)`\n  - `cell_size`: uniform cell edge length\n  - `world_rounding`: explicit `Floor`, `Round`, or `Ceil`\n\nGrid coordinates are deterministic because the rounding policy is part of the grid config and never inferred implicitly.\n\n## Grid Model\n\nEach cell stores:\n\n- walkability\n- area type\n- traversal mask bits\n- base movement cost\n- clearance\n\nOptional explicit transitions connect one cell to another with a cost and optional one-way behavior. These model stairs, ladders, teleports, elevators, or vertical links without hard-coding genre-specific semantics.\n\n## Hierarchy Model\n\nLevel 1 is built directly from cells:\n\n1. Partition the world into fixed-size clusters.\n2. Scan every border face between adjacent clusters.\n3. Flood-fill passable border cells into entrance groups.\n4. Merge long contiguous groups into one or two representative portal pairs.\n5. Create portal endpoint nodes on both sides of the border.\n6. Precompute intra-cluster paths between portal endpoints.\n\nLevels 2 and 3 are recursive shortcut layers:\n\n- higher clusters are fixed 2x scale aggregates of the lower level\n- higher-level portal nodes are anchored to lower-level portal endpoints\n- projection edges connect higher-level nodes to their lower-level anchors with zero travel cost\n- higher-level intra-cluster edges store lower-level node routes\n\nThis keeps the public hierarchy explicit and debugable while avoiding hidden graph mutation during query time.\n\n## Query Pipeline\n\nThe default `query_path` flow is:\n\n1. Convert world or cell start/goal to `GridCoord`.\n2. Apply any request-scoped `PathCostOverlay` regions to the traversal-cost probe for that query only.\n3. Use direct A* if the request is short-range or both points lie in the same level-1 cluster.\n4. Otherwise connect temporary start/goal nodes to the level-1 portal nodes in their clusters.\n5. Run A* over the union graph:\n   - level-1 nodes\n   - level-2 / level-3 shortcut nodes\n   - temporary start/goal edges\n6. Refine the chosen abstract route:\n   - projection edges collapse away\n   - higher-level shortcut edges expand into lower-level node routes\n   - level-1 intra-cluster edges expand into cell corridors\n7. Validate the corridor, then optionally smooth it.\n8. Record touched cluster versions plus the overlay signature for invalidation and caching.\n\n`estimate_cost` returns a lightweight cost probe using the current hierarchy path when available and falls back to direct search otherwise.\n\n`query_path_sliced` keeps the direct-grid open list and parent map alive across frames and expands only a bounded number of low-level nodes per call. That keeps the runtime WASM-safe and frame-budgeted without blocking the main thread.\n\n## Flow-Field Pipeline\n\n`build_flow_field` uses the committed snapshot but solves the graph in reverse from one goal:\n\n1. Validate or relocate the requested goal to the nearest passable cell.\n2. Run a Dijkstra-style reverse expansion over low-level neighbors and incoming explicit transitions.\n3. Record the best integration cost for every reachable cell.\n4. Pick the cheapest reachable neighbor of each cell as its `next` pointer.\n\nThe result is a reusable field that many agents can sample cheaply without issuing independent path queries.\n\nFlow-field generation respects:\n\n- the active filter profile\n- request-local overlays\n- clearance-aware variants through `build_flow_field_with_clearance`\n\n## Filter Model\n\nEvery request carries either a registered `PathFilterId` or an inline `PathFilterProfile`.\n\nThe filter can:\n\n- exclude traversal-mask bits\n- allow only specific traversal-mask bits\n- override area costs\n- enforce agent clearance\n- add temporary cost overlays by region\n\nLevel-1 intra-cluster routes are computed against the requesting filter when temporary start/goal hookups are built. Higher-level shortcut edges are conservative in pass 1: they recursively expand into stored lower-level routes instead of running a fresh super-cluster repair.\n\n## Dynamic Rebuild Flow\n\nEdits are region-based:\n\n1. A system mutates the `PathfindingGrid` directly or adds/removes a `PathfindingObstacle`.\n2. Manual edits can emit `GridRegionChanged`; obstacle edits are synchronized into blocked cells by the crate before rebuilds.\n3. Dirty level-1 clusters are computed from the region overlap.\n4. Parent clusters on higher levels are marked dirty automatically.\n5. `detect_grid_changes` consumes up to `rebuild_budget_per_frame` dirty cluster stamps.\n6. After each consumed batch, the crate rebuilds a fresh committed hierarchy snapshot, reapplies the carried cluster versions, and invalidates any cache entry whose touched clusters overlap the rebuilt set.\n\nCached paths that touch dirty level-1 clusters are dropped immediately. Already published `ComputedPath` corridors are invalidated on the next validation pass if their touched cluster versions no longer match.\n\n## Async and Sliced Queries\n\nThe ECS shell supports three execution modes:\n\n- direct sync\n- background async on `AsyncComputeTaskPool`\n- sliced direct-grid search across frames\n\nAsync tasks clone the committed `PathfindingSnapshot`, never borrow ECS state directly, and return pure results. The ECS request component carries per-request overlays into those jobs, and publication compares the job's `PathVersion` with the current committed version.\n\nSliced mode keeps its own resumable search state resource so large requests can respect frame budgets even without worker threads or on WASM.\n\n## Cache and Validation\n\nThe path cache is exact-keyed:\n\n- start\n- goal\n- query mode\n- filter id\n- partial flag\n- overlay signature\n- committed snapshot version\n\nEach entry stores:\n\n- final corridor\n- world-space waypoints\n- total cost\n- touched level-1 cluster version stamps\n- last-touch tick for LRU and TTL\n\nDirty-region invalidation removes entries whose touched clusters overlap the dirty set. Runtime cache limits are pulled from `HpaPathfindingConfig` every frame so BRP edits to `cache_capacity` and `cache_ttl_frames` take effect immediately.\n\nClearance is part of the cache key and async dedup key. A path solved for a small agent is therefore never reused accidentally for a larger agent that needs wider corridors.\n\n## Debug Layout\n\nDebug layers are controlled through `HpaPathfindingConfig` flags:\n\n- grid cells\n- cluster bounds per level\n- portal nodes\n- abstract graph edges\n- active paths\n- dirty clusters\n- cost heatmap\n\nThe heatmap renders base cell costs through the default filter profile (`PathFilterId(0)`). Query-time overlays remain request-local and are not merged into one global heatmap view.\n\nThe plugin only adds the gizmo draw system when the app already has Bevy gizmo resources, so logic-only tests and minimal apps can still use the runtime safely.\n",slug:"architecture"},uses:{params:["slug"]}}],
+							form: null,
+							error: null
+						});
+					});
+				}
+			</script>
+		</div>
+	</body>
+</html>
