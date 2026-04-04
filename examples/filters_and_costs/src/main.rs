@@ -107,8 +107,14 @@ fn sync_pane(
     pane: Res<support::HpaExamplePane>,
     grid: Res<PathfindingGrid>,
     mut goals: Query<&mut Transform, With<GoalMarker>>,
-    mut utility_agents: Query<(&mut PathfindingAgent, &mut PathRequest), With<UtilityAgent>>,
-    mut wheeled_agents: Query<(&mut PathfindingAgent, &mut PathRequest), With<WheeledAgent>>,
+    mut utility_agents: Query<
+        (&mut PathfindingAgent, &mut PathRequest),
+        (With<UtilityAgent>, Without<WheeledAgent>),
+    >,
+    mut wheeled_agents: Query<
+        (&mut PathfindingAgent, &mut PathRequest),
+        (With<WheeledAgent>, Without<UtilityAgent>),
+    >,
 ) {
     if !pane.is_changed() {
         return;
