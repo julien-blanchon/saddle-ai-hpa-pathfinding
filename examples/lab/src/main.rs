@@ -78,6 +78,8 @@ fn main() {
         goal_y: 20,
         draw_clusters: true,
         draw_portals: true,
+        draw_abstract_graph: true,
+        draw_paths: true,
         ..default()
     });
     app.insert_resource(build_lab_config());

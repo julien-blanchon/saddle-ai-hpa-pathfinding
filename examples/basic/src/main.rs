@@ -1,5 +1,8 @@
 use saddle_ai_hpa_pathfinding_example_support as support;
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use bevy::prelude::*;
 use saddle_ai_hpa_pathfinding::{
     ComputedPath, GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
@@ -25,8 +28,21 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: basic");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::click_to_set_goal,
+            support::click_to_toggle_wall,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, (sync_pane, sync_monitors));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -37,13 +53,17 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>) {
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Basic Route",
-        "Move the goal to watch one agent replan through the HPA hierarchy with live portal and cluster overlays.",
+        "Left-click to set goal. Right-click to toggle walls.\nUse the pane on the right to tweak parameters.",
     );
     support::spawn_grid_tiles(
         &mut commands,
         grid.as_ref(),
         support::ExampleLayout::Single,
         None,
+    );
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
     );
 
     let goal = GridCoord::new(28, 21, 0);
@@ -96,7 +116,7 @@ fn sync_pane(
             grid.as_ref(),
             support::ExampleLayout::Single,
             goal,
-            8.0,
+            9.0,
         );
     }
     for (mut agent, mut request) in &mut agents {

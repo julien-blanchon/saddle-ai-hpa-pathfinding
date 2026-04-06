@@ -3,6 +3,9 @@ use saddle_ai_hpa_pathfinding_example_support as support;
 use bevy::prelude::*;
 use saddle_ai_hpa_pathfinding::{HpaPathfindingPlugin, PathCostOverlay, PathfindingGrid};
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 #[derive(Component)]
 struct GoalMarker;
 
@@ -31,8 +34,20 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: flow field");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::click_to_set_goal,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, rebuild_flow_field);
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -43,7 +58,7 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Flow Field Evacuation",
-        "Every arrow points at the cheapest next step toward the active goal. Toggle the overlay to bend the field around temporary soft costs.",
+        "Arrows show cheapest next step toward the goal.\nLeft-click to move goal. Toggle overlay for soft cost penalties.",
     );
     let overlay = if pane.overlay_enabled {
         Some(support::pane_overlay_region(&pane))
@@ -67,6 +82,11 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         Color::srgb(0.97, 0.85, 0.28),
     );
     commands.entity(goal_marker).insert(GoalMarker);
+
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
+    );
 }
 
 fn rebuild_flow_field(
@@ -90,7 +110,7 @@ fn rebuild_flow_field(
             grid.as_ref(),
             support::ExampleLayout::Single,
             goal,
-            8.0,
+            9.0,
         );
     }
 
@@ -132,10 +152,10 @@ fn rebuild_flow_field(
             )),
             FlowArrow,
             Sprite::from_color(
-                Color::srgba(0.86, 0.92, 0.98, 0.78),
+                Color::srgba(0.88, 0.94, 1.0, 0.85),
                 Vec2::new(
-                    grid.grid().space.cell_size * 0.34,
-                    grid.grid().space.cell_size * 0.10,
+                    grid.grid().space.cell_size * 0.48,
+                    grid.grid().space.cell_size * 0.14,
                 ),
             ),
             Transform {

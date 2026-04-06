@@ -21,6 +21,7 @@ bevy_ui_widgets = "0.18"
 futures-lite = "2"
 saddle-pane = { git = "https://github.com/julien-blanchon/saddle-pane" }
 saddle-ai-hpa-pathfinding = { path = ".." }
+saddle-bevy-e2e = { git = "https://github.com/julien-blanchon/saddle-bevy-e2e", features = ["json"] }
 
 [workspace.lints.clippy]
 too_many_arguments = "allow"

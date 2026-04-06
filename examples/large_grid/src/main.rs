@@ -1,5 +1,8 @@
 use saddle_ai_hpa_pathfinding_example_support as support;
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use bevy::prelude::*;
 use saddle_ai_hpa_pathfinding::{
     ComputedPath, GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
@@ -45,8 +48,19 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: large grid");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, sync_monitors);
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -57,13 +71,18 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>) {
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Large Grid Stress Route",
-        "Three long-haul requests share the same 128x128 hierarchy. This is the visual stress example for long-distance routing and portal reuse.",
+        "128x128 grid — three agents share the same hierarchy.\nUse keyboard shortcuts to toggle debug layers.",
     );
     support::spawn_grid_tiles(
         &mut commands,
         grid.as_ref(),
         support::ExampleLayout::Single,
         None,
+    );
+
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
     );
 
     let long_route = support::spawn_agent_sprite(

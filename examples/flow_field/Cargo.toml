@@ -4,11 +4,15 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[features]
+e2e = ["saddle-ai-hpa-pathfinding-example-support/e2e", "dep:saddle-bevy-e2e"]
+
 [dependencies]
 bevy = { workspace = true }
 saddle-pane = { workspace = true }
 saddle-ai-hpa-pathfinding = { workspace = true }
 saddle-ai-hpa-pathfinding-example-support = { path = "../support" }
+saddle-bevy-e2e = { workspace = true, optional = true }
 
 [lints]
 workspace = true

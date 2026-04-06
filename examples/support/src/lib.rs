@@ -12,13 +12,15 @@ struct ExampleAutoExit(Timer);
 #[pane(title = "HPA Pathfinding", position = "top-right")]
 pub struct HpaExamplePane {
     #[pane(toggle)]
-    pub debug_enabled: bool,
-    #[pane(toggle)]
     pub draw_grid: bool,
     #[pane(toggle)]
     pub draw_clusters: bool,
     #[pane(toggle)]
     pub draw_portals: bool,
+    #[pane(toggle)]
+    pub draw_abstract_graph: bool,
+    #[pane(toggle)]
+    pub draw_paths: bool,
     #[pane(toggle)]
     pub draw_heatmap: bool,
     #[pane(toggle)]
@@ -54,10 +56,11 @@ pub struct HpaExamplePane {
 impl Default for HpaExamplePane {
     fn default() -> Self {
         Self {
-            debug_enabled: true,
             draw_grid: false,
             draw_clusters: true,
             draw_portals: true,
+            draw_abstract_graph: false,
+            draw_paths: true,
             draw_heatmap: false,
             gate_blocked: false,
             overlay_enabled: false,
@@ -87,7 +90,7 @@ pub enum ExampleLayout {
 }
 
 pub fn configure_visual_app(app: &mut App, title: &str) {
-    app.insert_resource(ClearColor(Color::srgb(0.05, 0.06, 0.08)));
+    app.insert_resource(ClearColor(Color::srgb(0.08, 0.09, 0.11)));
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: title.into(),
@@ -115,10 +118,11 @@ pub fn sync_config_from_pane(pane: Res<HpaExamplePane>, mut config: ResMut<HpaPa
         return;
     }
 
-    config.debug_draw_paths = pane.debug_enabled;
+    config.debug_draw_paths = pane.draw_paths;
     config.debug_draw_grid = pane.draw_grid;
     config.debug_draw_clusters = pane.draw_clusters;
     config.debug_draw_portals = pane.draw_portals;
+    config.debug_draw_abstract_graph = pane.draw_abstract_graph;
     config.debug_draw_cost_heatmap = pane.draw_heatmap;
     config.direct_search_distance = pane.direct_search_distance.max(1) as u32;
     config.max_queries_per_frame = pane.max_queries_per_frame.max(1) as u32;
@@ -160,11 +164,45 @@ pub fn build_demo_grid(dimensions: UVec3) -> GridStorage {
         config.cell_size,
         WorldRoundingPolicy::Floor,
     );
+
+    // Wall across middle with a gate.
     for x in 6..dimensions.x.saturating_sub(6) as i32 {
         grid.set_walkable(GridCoord::new(x, (dimensions.y / 2) as i32, 0), false);
     }
     let gate = GridCoord::new((dimensions.x / 2) as i32, (dimensions.y / 2) as i32, 0);
     grid.set_walkable(gate, true);
+
+    // Rough-terrain patches so the heatmap is visually interesting.
+    if dimensions.x >= 16 && dimensions.y >= 16 {
+        grid.fill_region(
+            GridAabb::new(GridCoord::new(2, 2, 0), GridCoord::new(6, 6, 0)),
+            |_coord, cell| {
+                if cell.walkable {
+                    cell.base_cost = 2.5;
+                    cell.area = AreaTypeId(1);
+                }
+            },
+        );
+        let rx = (dimensions.x as i32).saturating_sub(8);
+        let ry = (dimensions.y as i32).saturating_sub(7);
+        grid.fill_region(
+            GridAabb::new(
+                GridCoord::new(rx.max(0), ry.max(0), 0),
+                GridCoord::new(
+                    (dimensions.x as i32).saturating_sub(3).max(rx),
+                    (dimensions.y as i32).saturating_sub(3).max(ry),
+                    0,
+                ),
+            ),
+            |_coord, cell| {
+                if cell.walkable {
+                    cell.base_cost = 1.8;
+                    cell.area = AreaTypeId(1);
+                }
+            },
+        );
+    }
+
     grid
 }
 
@@ -246,8 +284,8 @@ pub fn spawn_demo_backdrop(
     let size = visual_bounds(grid, layout) + Vec2::splat(grid.grid().space.cell_size * 3.0);
     commands.spawn((
         Name::new("Backdrop"),
-        Sprite::from_color(Color::srgb(0.09, 0.10, 0.12), size),
-        Transform::from_xyz(0.0, 0.0, -50.0),
+        Sprite::from_color(Color::srgb(0.14, 0.15, 0.18), size),
+        Transform::from_xyz(0.0, 0.0, 0.1),
     ));
     commands.spawn((
         Name::new("Example Label"),
@@ -269,13 +307,35 @@ pub fn spawn_demo_backdrop(
     ));
 }
 
+/// Spawn an on-screen instruction overlay at the bottom-left.
+pub fn spawn_instructions(commands: &mut Commands, text: &str) {
+    commands.spawn((
+        Name::new("Instructions"),
+        Text::new(text.to_owned()),
+        Node {
+            position_type: PositionType::Absolute,
+            left: px(18.0),
+            bottom: px(18.0),
+            width: px(480.0),
+            padding: UiRect::all(px(12.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.02, 0.03, 0.05, 0.72)),
+        TextFont {
+            font_size: 14.0,
+            ..default()
+        },
+        TextColor(Color::srgba(0.85, 0.88, 0.92, 0.95)),
+    ));
+}
+
 pub fn spawn_grid_tiles(
     commands: &mut Commands,
     grid: &PathfindingGrid,
     layout: ExampleLayout,
     overlay_region: Option<GridAabb>,
 ) {
-    let tile_size = Vec2::splat(grid.grid().space.cell_size * 0.88);
+    let tile_size = Vec2::splat(grid.grid().space.cell_size * 0.92);
     for coord in grid.grid().bounds().iter() {
         let cell = grid
             .grid()
@@ -293,7 +353,7 @@ pub fn spawn_grid_tiles(
                 coord.z()
             )),
             Sprite::from_color(color, tile_size),
-            Transform::from_translation(grid_visual_translation(grid, layout, coord, -5.0)),
+            Transform::from_translation(grid_visual_translation(grid, layout, coord, 0.2)),
         ));
     }
 }
@@ -306,11 +366,19 @@ pub fn spawn_agent_sprite(
     coord: GridCoord,
     color: Color,
 ) -> Entity {
+    let cell = grid.grid().space.cell_size;
+    let pos = grid_visual_translation(grid, layout, coord, 6.0);
+    // Dark outline ring behind the agent for contrast.
+    commands.spawn((
+        Name::new(format!("{name} Outline")),
+        Sprite::from_color(Color::srgba(0.0, 0.0, 0.0, 0.6), Vec2::splat(cell * 0.80)),
+        Transform::from_translation(pos - Vec3::Z * 0.1),
+    ));
     commands
         .spawn((
             Name::new(name.to_owned()),
-            Sprite::from_color(color, Vec2::splat(grid.grid().space.cell_size * 0.56)),
-            Transform::from_translation(grid_visual_translation(grid, layout, coord, 5.0)),
+            Sprite::from_color(color, Vec2::splat(cell * 0.70)),
+            Transform::from_translation(pos),
             GlobalTransform::default(),
         ))
         .id()
@@ -324,11 +392,19 @@ pub fn spawn_goal_marker(
     coord: GridCoord,
     color: Color,
 ) -> Entity {
+    let cell = grid.grid().space.cell_size;
+    let pos = grid_visual_translation(grid, layout, coord, 9.0);
+    // Dark outline ring behind the goal for contrast.
+    commands.spawn((
+        Name::new(format!("{name} Outline")),
+        Sprite::from_color(Color::srgba(0.0, 0.0, 0.0, 0.5), Vec2::splat(cell * 0.58)),
+        Transform::from_translation(pos - Vec3::Z * 0.1),
+    ));
     commands
         .spawn((
             Name::new(name.to_owned()),
-            Sprite::from_color(color, Vec2::splat(grid.grid().space.cell_size * 0.28)),
-            Transform::from_translation(grid_visual_translation(grid, layout, coord, 8.0)),
+            Sprite::from_color(color, Vec2::splat(cell * 0.48)),
+            Transform::from_translation(pos),
             GlobalTransform::default(),
         ))
         .id()
@@ -385,17 +461,115 @@ pub fn pane_overlay_region(pane: &HpaExamplePane) -> GridAabb {
     )
 }
 
+// ---------------------------------------------------------------------------
+// Interactive systems for examples
+// ---------------------------------------------------------------------------
+
+/// Left-click on the grid to set the goal position. The pane goal_x / goal_y
+/// fields are updated, which triggers the normal pane-change flow.
+pub fn click_to_set_goal(
+    buttons: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    grid: Res<PathfindingGrid>,
+    mut pane: ResMut<HpaExamplePane>,
+) {
+    if !buttons.just_pressed(MouseButton::Left) {
+        return;
+    }
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    let Some(cursor_pos) = window.cursor_position() else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = cameras.single() else {
+        return;
+    };
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+        return;
+    };
+    let coord = grid
+        .grid()
+        .world_to_grid(Vec3::new(world_pos.x, world_pos.y, 0.0));
+    let dims = grid.grid().dimensions;
+    if coord.x() >= 0 && coord.y() >= 0 && coord.x() < dims.x as i32 && coord.y() < dims.y as i32 {
+        pane.goal_x = coord.x();
+        pane.goal_y = coord.y();
+    }
+}
+
+/// Right-click to toggle walkability of the clicked cell.
+pub fn click_to_toggle_wall(
+    buttons: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window>,
+    cameras: Query<(&Camera, &GlobalTransform), With<Camera2d>>,
+    mut grid: ResMut<PathfindingGrid>,
+) {
+    if !buttons.just_pressed(MouseButton::Right) {
+        return;
+    }
+    let Ok(window) = windows.single() else {
+        return;
+    };
+    let Some(cursor_pos) = window.cursor_position() else {
+        return;
+    };
+    let Ok((camera, camera_transform)) = cameras.single() else {
+        return;
+    };
+    let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_pos) else {
+        return;
+    };
+    let coord = grid
+        .grid()
+        .world_to_grid(Vec3::new(world_pos.x, world_pos.y, 0.0));
+    let dims = grid.grid().dimensions;
+    if coord.x() >= 0 && coord.y() >= 0 && coord.x() < dims.x as i32 && coord.y() < dims.y as i32 {
+        let walkable = grid.grid().cell(coord).map(|c| c.walkable).unwrap_or(false);
+        grid.set_walkable(coord, !walkable);
+    }
+}
+
+/// Keyboard shortcuts for toggling debug visualization layers.
+///   G = grid, C = clusters, P = portals, A = abstract graph,
+///   H = heatmap, D = paths (draw paths)
+pub fn keyboard_debug_shortcuts(keys: Res<ButtonInput<KeyCode>>, mut pane: ResMut<HpaExamplePane>) {
+    if keys.just_pressed(KeyCode::KeyG) {
+        pane.draw_grid = !pane.draw_grid;
+    }
+    if keys.just_pressed(KeyCode::KeyC) {
+        pane.draw_clusters = !pane.draw_clusters;
+    }
+    if keys.just_pressed(KeyCode::KeyP) {
+        pane.draw_portals = !pane.draw_portals;
+    }
+    if keys.just_pressed(KeyCode::KeyA) {
+        pane.draw_abstract_graph = !pane.draw_abstract_graph;
+    }
+    if keys.just_pressed(KeyCode::KeyH) {
+        pane.draw_heatmap = !pane.draw_heatmap;
+    }
+    if keys.just_pressed(KeyCode::KeyD) {
+        pane.draw_paths = !pane.draw_paths;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
 fn cell_visual_color(cell: &CellData, overlay: bool) -> Color {
     let mut color = if !cell.walkable {
-        Color::srgb(0.68, 0.24, 0.20)
+        Color::srgb(0.72, 0.28, 0.22)
     } else if cell.area == AreaTypeId(1) {
-        Color::srgb(0.20, 0.34, 0.52)
+        Color::srgb(0.24, 0.38, 0.54)
     } else {
-        Color::srgb(0.20, 0.24, 0.28)
+        Color::srgb(0.34, 0.36, 0.42)
     };
 
     if overlay && cell.walkable {
-        color = Color::srgb(0.58, 0.42, 0.18);
+        color = Color::srgb(0.50, 0.40, 0.16);
     }
     color
 }
@@ -443,5 +617,77 @@ fn auto_exit_example(
 ) {
     if auto_exit.0.tick(time.delta()).just_finished() {
         exit.write(AppExit::Success);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// E2E support (behind `e2e` feature)
+// ---------------------------------------------------------------------------
+
+#[cfg(feature = "e2e")]
+pub mod e2e_support {
+    use bevy::prelude::*;
+    use saddle_bevy_e2e::{action::Action, scenario::Scenario};
+
+    /// Reusable E2E plugin for individual examples.
+    ///
+    /// Pass two function pointers: one to list available scenario names,
+    /// one to build a scenario by name. The plugin parses CLI args and
+    /// initialises the runner automatically.
+    pub struct ExampleE2EPlugin {
+        list_fn: fn() -> Vec<&'static str>,
+        build_fn: fn(&str) -> Option<Scenario>,
+    }
+
+    impl ExampleE2EPlugin {
+        pub fn new(
+            list_fn: fn() -> Vec<&'static str>,
+            build_fn: fn(&str) -> Option<Scenario>,
+        ) -> Self {
+            Self { list_fn, build_fn }
+        }
+    }
+
+    impl Plugin for ExampleE2EPlugin {
+        fn build(&self, app: &mut App) {
+            app.add_plugins(saddle_bevy_e2e::E2EPlugin);
+
+            let args: Vec<String> = std::env::args().collect();
+            let (scenario_name, handoff) = parse_e2e_args(&args);
+
+            if let Some(name) = scenario_name {
+                if let Some(mut scenario) = (self.build_fn)(&name) {
+                    if handoff {
+                        scenario.actions.push(Action::Handoff);
+                    }
+                    saddle_bevy_e2e::init_scenario(app, scenario);
+                } else {
+                    error!(
+                        "[e2e] Unknown scenario '{name}'. Available: {:?}",
+                        (self.list_fn)()
+                    );
+                }
+            }
+        }
+    }
+
+    fn parse_e2e_args(args: &[String]) -> (Option<String>, bool) {
+        let mut scenario_name = None;
+        let mut handoff = false;
+
+        for arg in args.iter().skip(1) {
+            if arg == "--handoff" {
+                handoff = true;
+            } else if !arg.starts_with('-') && scenario_name.is_none() {
+                scenario_name = Some(arg.clone());
+            }
+        }
+
+        if !handoff {
+            handoff =
+                std::env::var("E2E_HANDOFF").is_ok_and(|v| v == "1" || v == "true");
+        }
+
+        (scenario_name, handoff)
     }
 }

@@ -120,6 +120,43 @@ Not included:
 | `debug_viz` | Debug layers for clusters, portals, paths, and the cost heatmap | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-example-debug-viz` |
 | `saddle-ai-hpa-pathfinding-lab` | Crate-local showcase with BRP and E2E hooks | `cargo run --manifest-path examples/Cargo.toml -p saddle-ai-hpa-pathfinding-lab` |
 
+## Per-Example E2E Visual Testing
+
+Every example has a `visual_check` E2E scenario that takes screenshots and logs diagnostics. Use these to validate rendering after visual changes.
+
+```bash
+# Run from the examples/ directory
+cd examples
+
+# Run a single example's visual check
+cargo run -p saddle-ai-hpa-pathfinding-example-basic --features e2e -- visual_check
+
+# Run all example visual checks
+for ex in basic debug-viz dynamic-obstacles large-grid async-queries filters-and-costs flow-field layered-2-5d; do
+  echo "=== $ex ==="
+  cargo run -p "saddle-ai-hpa-pathfinding-example-$ex" --features e2e -- visual_check
+done
+```
+
+Screenshots and logs are saved to `e2e_output/visual_check/`:
+
+| Example | Screenshots | What it validates |
+| --- | --- | --- |
+| `basic` | `initial`, `all_layers` | Grid, agent, goal, path, then all debug layers enabled |
+| `debug_viz` | `all_layers_on`, `paths_only` | Full debug overlay, then paths-only isolation |
+| `dynamic_obstacles` | `gate_open`, `gate_blocked` | Path before and after gate obstruction |
+| `large_grid` | `three_agents` | Three concurrent agents on 128x128 grid |
+| `async_queries` | `queue_drained` | Four agents after async queue drains |
+| `filters_and_costs` | `two_filters` | Wheeled vs utility filter paths |
+| `flow_field` | `flow_arrows` | Direction arrows for all reachable cells |
+| `layered_2_5d` | `cross_layer_path` | Cross-layer path through stair transition |
+
+Use `--handoff` to keep the window open after the scenario completes for interactive debugging:
+
+```bash
+cargo run -p saddle-ai-hpa-pathfinding-example-basic --features e2e -- visual_check --handoff
+```
+
 ## Crate-Local Lab
 
 `shared/ai/saddle-ai-hpa-pathfinding/examples/lab` is the richer verification surface for this crate. It keeps BRP and E2E scenarios inside the shared crate instead of pushing them into project-level sandboxes.

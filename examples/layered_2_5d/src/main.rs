@@ -5,6 +5,9 @@ use saddle_ai_hpa_pathfinding::{
     ComputedPath, GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
 };
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 #[derive(Component)]
 struct GoalMarker;
 
@@ -30,8 +33,19 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: layered 2.5d");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, (sync_pane, sync_monitors));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -42,7 +56,7 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         grid.as_ref(),
         LAYOUT,
         "Layered 2.5D Route",
-        "Each board is one layer. The route uses an explicit stair transition between layers instead of pretending the space is flat.",
+        "Two layers connected by stairs. The route crosses layers\nvia an explicit transition link.",
     );
     support::spawn_grid_tiles(&mut commands, grid.as_ref(), LAYOUT, None);
     support::spawn_layer_labels(&mut commands, grid.as_ref(), LAYOUT);
@@ -65,6 +79,11 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         Color::srgb(0.34, 0.86, 0.96),
     );
 
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
+    );
+
     commands.entity(goal_marker).insert(GoalMarker);
     commands.entity(agent).insert((
         LayeredAgent,
@@ -85,7 +104,7 @@ fn sync_pane(
 
     let goal = support::clamp_goal_to_grid(grid.as_ref(), &pane);
     for mut transform in &mut goals {
-        transform.translation = support::grid_visual_translation(grid.as_ref(), LAYOUT, goal, 8.0);
+        transform.translation = support::grid_visual_translation(grid.as_ref(), LAYOUT, goal, 9.0);
     }
     for (mut agent, mut request) in &mut agents {
         agent.clearance = pane.clearance.max(0) as u16;

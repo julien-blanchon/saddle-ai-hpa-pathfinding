@@ -6,6 +6,9 @@ use saddle_ai_hpa_pathfinding::{
     PathfindingGrid, PathfindingObstacle,
 };
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 const GATE: GridCoord = GridCoord(IVec3::new(16, 12, 0));
 
 #[derive(Component)]
@@ -35,8 +38,20 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: dynamic obstacles");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::click_to_set_goal,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, (sync_pane, sync_monitors, sync_gate_visual));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -47,7 +62,7 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>) {
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Dynamic Gate",
-        "Toggle the central gate live to force the route back through side corridors and watch the published path invalidate and recover.",
+        "Toggle the gate_blocked pane checkbox to block the gate.\nLeft-click to move the goal. Watch the path invalidate and recover.",
     );
     support::spawn_grid_tiles(
         &mut commands,
@@ -81,6 +96,10 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>) {
         GATE,
         Color::srgba(0.94, 0.28, 0.22, 0.05),
     );
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
+    );
     commands.entity(goal_marker).insert(GoalMarker);
     commands.entity(gate).insert(GateMarker);
     commands.entity(agent).insert((
@@ -108,7 +127,7 @@ fn sync_pane(
             grid.as_ref(),
             support::ExampleLayout::Single,
             goal,
-            8.0,
+            9.0,
         );
     }
     for (mut agent, mut request) in &mut agents {

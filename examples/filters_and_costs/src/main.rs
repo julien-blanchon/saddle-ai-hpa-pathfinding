@@ -6,6 +6,9 @@ use saddle_ai_hpa_pathfinding::{
     PathfindingAgent, PathfindingGrid,
 };
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 #[derive(Component)]
 struct GoalMarker;
 
@@ -32,8 +35,20 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: filters and costs");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::click_to_set_goal,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, (sync_pane, sync_monitors));
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -49,7 +64,7 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Filters And Cost Overlays",
-        "The green utility agent tolerates rough terrain better, while the blue wheeled agent strongly avoids it. Toggle the amber overlay to add request-local soft penalties.",
+        "Green=utility (low terrain penalty), Blue=wheeled (high penalty).\nLeft-click to move goal. Toggle overlay to add soft costs.",
     );
     support::spawn_grid_tiles(
         &mut commands,
@@ -82,6 +97,11 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>, pane: Res<support::
         "Wheeled Agent",
         GridCoord::new(2, 3, 0),
         Color::srgb(0.34, 0.66, 0.98),
+    );
+
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
     );
 
     commands.entity(goal_marker).insert(GoalMarker);
@@ -135,7 +155,7 @@ fn sync_pane(
             grid.as_ref(),
             support::ExampleLayout::Single,
             goal,
-            8.0,
+            9.0,
         );
     }
     for (mut agent, mut request) in &mut utility_agents {

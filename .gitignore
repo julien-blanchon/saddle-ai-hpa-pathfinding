@@ -18,6 +18,9 @@ target
 # RustRover
 #.idea/
 
+# E2E test output (screenshots, logs, videos)
+**/e2e_output/
+
 
 ## Mac Os
 

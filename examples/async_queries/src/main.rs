@@ -1,5 +1,8 @@
 use saddle_ai_hpa_pathfinding_example_support as support;
 
+#[cfg(feature = "e2e")]
+mod scenarios;
+
 use bevy::prelude::*;
 use saddle_ai_hpa_pathfinding::{
     ComputedPath, GridCoord, HpaPathfindingPlugin, PathRequest, PathfindingAgent, PathfindingGrid,
@@ -28,8 +31,19 @@ fn main() {
     support::configure_visual_app(&mut app, "hpa pathfinding: async queries");
     app.add_plugins(HpaPathfindingPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, support::sync_config_from_pane);
+    app.add_systems(
+        Update,
+        (
+            support::sync_config_from_pane,
+            support::keyboard_debug_shortcuts,
+        ),
+    );
     app.add_systems(Update, sync_monitors);
+    #[cfg(feature = "e2e")]
+    app.add_plugins(support::e2e_support::ExampleE2EPlugin::new(
+        scenarios::list,
+        scenarios::by_name,
+    ));
     app.run();
 }
 
@@ -40,13 +54,18 @@ fn setup(mut commands: Commands, grid: Res<PathfindingGrid>) {
         grid.as_ref(),
         support::ExampleLayout::Single,
         "Async Query Queue",
-        "Lower the per-frame budget to watch the request queue drain more slowly. Multiple agents share the same committed hierarchy snapshot without blocking the frame.",
+        "Lower max_queries_per_frame to watch the queue drain.\nFour agents share the same hierarchy snapshot.",
     );
     support::spawn_grid_tiles(
         &mut commands,
         grid.as_ref(),
         support::ExampleLayout::Single,
         None,
+    );
+
+    support::spawn_instructions(
+        &mut commands,
+        "Keyboard shortcuts:  G grid  C clusters  P portals  A graph  H heatmap  D paths",
     );
 
     for (index, (start, goal, color)) in [
