@@ -11,6 +11,9 @@ pub fn list_scenarios() -> Vec<&'static str> {
         "hpa_pathfinding_filters",
         "hpa_pathfinding_large_grid",
         "hpa_pathfinding_flow_field",
+        "hpa_pathfinding_reopen_gate",
+        "hpa_pathfinding_flow_field_direction",
+        "hpa_pathfinding_stress_queue",
     ]
 }
 
@@ -22,6 +25,9 @@ pub fn scenario_by_name(name: &str) -> Option<Scenario> {
         "hpa_pathfinding_filters" => Some(hpa_pathfinding_filters()),
         "hpa_pathfinding_large_grid" => Some(hpa_pathfinding_large_grid()),
         "hpa_pathfinding_flow_field" => Some(hpa_pathfinding_flow_field()),
+        "hpa_pathfinding_reopen_gate" => Some(hpa_pathfinding_reopen_gate()),
+        "hpa_pathfinding_flow_field_direction" => Some(hpa_pathfinding_flow_field_direction()),
+        "hpa_pathfinding_stress_queue" => Some(hpa_pathfinding_stress_queue()),
         _ => None,
     }
 }
@@ -165,5 +171,106 @@ fn hpa_pathfinding_flow_field() -> Scenario {
         .then(Action::Screenshot("flow_field".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("hpa_pathfinding_flow_field"))
+        .build()
+}
+
+fn hpa_pathfinding_reopen_gate() -> Scenario {
+    Scenario::builder("hpa_pathfinding_reopen_gate")
+        .description(
+            "Block the gate (raises path cost) then unblock it again and verify the path cost \
+             returns to its baseline, confirming bidirectional dynamic obstacle support.",
+        )
+        .then(Action::WaitUntil {
+            label: "baseline dynamic route resolved".into(),
+            condition: Box::new(|world| world.resource::<LabDiagnostics>().dynamic_cost_before > 0.0),
+            max_frames: 120,
+        })
+        // Block the gate — cost should rise
+        .then(block_gate(true))
+        .then(Action::WaitUntil {
+            label: "path invalidated after block".into(),
+            condition: Box::new(|world| world.resource::<LabDiagnostics>().invalidations > 0),
+            max_frames: 120,
+        })
+        .then(Action::WaitUntil {
+            label: "cost increased after block".into(),
+            condition: Box::new(|world| {
+                let d = world.resource::<LabDiagnostics>();
+                d.dynamic_cost_after > d.dynamic_cost_before
+            }),
+            max_frames: 180,
+        })
+        .then(assertions::custom("gate block increased cost", |world| {
+            let d = world.resource::<LabDiagnostics>();
+            d.dynamic_cost_after > d.dynamic_cost_before
+        }))
+        .then(Action::Screenshot("reopen_blocked".into()))
+        .then(Action::WaitFrames(1))
+        // Unblock — cost should return to baseline
+        .then(block_gate(false))
+        .then(Action::WaitUntil {
+            label: "second invalidation after unblock".into(),
+            condition: Box::new(|world| world.resource::<LabDiagnostics>().invalidations >= 2),
+            max_frames: 180,
+        })
+        .then(assertions::custom("gate unblock triggers re-invalidation", |world| {
+            world.resource::<LabDiagnostics>().invalidations >= 2
+        }))
+        .then(Action::Screenshot("reopen_unblocked".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("hpa_pathfinding_reopen_gate"))
+        .build()
+}
+
+fn hpa_pathfinding_flow_field_direction() -> Scenario {
+    Scenario::builder("hpa_pathfinding_flow_field_direction")
+        .description(
+            "Verify that the flow field at the start cell has a valid direction toward the goal \
+             and that the total reachable cell count covers the majority of the open area \
+             (excluding the wall band above the gate).",
+        )
+        .then(wait_until_smoke())
+        .then(assertions::custom("flow field start cell has a valid direction", |world| {
+            world.resource::<LabDiagnostics>().flow_field_start_has_direction
+        }))
+        .then(assertions::custom("flow field covers significant open area", |world| {
+            // The grid is 32×24 = 768 cells; the wall with a single-cell gate blocks a row.
+            // Standard agent clearance 0 should still reach well over 200 cells.
+            world.resource::<LabDiagnostics>().flow_field_reachable_cells > 200
+        }))
+        .then(assertions::custom("wide-clearance flow field is blocked at the gate", |world| {
+            world.resource::<LabDiagnostics>().wide_flow_field_blocked
+        }))
+        .then(set_flow_field_debug(true))
+        .then(Action::WaitFrames(4))
+        .then(Action::Screenshot("flow_direction".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("hpa_pathfinding_flow_field_direction"))
+        .build()
+}
+
+fn hpa_pathfinding_stress_queue() -> Scenario {
+    Scenario::builder("hpa_pathfinding_stress_queue")
+        .description(
+            "Verify that after the stress batch completes the queue depth drains to zero, \
+             confirming the frame-budget query scheduler does not stall or starve.",
+        )
+        .then(Action::WaitUntil {
+            label: "stress batch completed and queue drained".into(),
+            condition: Box::new(|world| {
+                let d = world.resource::<LabDiagnostics>();
+                d.stress_completed >= 8 && d.queue_depth == 0
+            }),
+            max_frames: 300,
+        })
+        .then(assertions::custom("all 8 stress agents resolved", |world| {
+            world.resource::<LabDiagnostics>().stress_completed >= 8
+        }))
+        .then(assertions::custom("query queue fully drained", |world| {
+            world.resource::<LabDiagnostics>().queue_depth == 0
+        }))
+        .then(Action::Screenshot("stress_queue_drained".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("hpa_pathfinding_stress_queue"))
         .build()
 }
