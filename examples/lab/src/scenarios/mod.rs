@@ -1,7 +1,10 @@
+mod support;
+
 use bevy::prelude::*;
 use saddle_bevy_e2e::{action::Action, actions::assertions, scenario::Scenario};
 
 use crate::{LabDiagnostics, set_gate_blocked};
+use support::wait_for_dynamic_replan;
 
 pub fn list_scenarios() -> Vec<&'static str> {
     vec![
@@ -93,14 +96,7 @@ fn hpa_pathfinding_dynamic() -> Scenario {
             condition: Box::new(|world| world.resource::<LabDiagnostics>().invalidations > 0),
             max_frames: 120,
         })
-        .then(Action::WaitUntil {
-            label: "dynamic path replanned".into(),
-            condition: Box::new(|world| {
-                let diagnostics = world.resource::<LabDiagnostics>();
-                diagnostics.dynamic_cost_after > diagnostics.dynamic_cost_before
-            }),
-            max_frames: 180,
-        })
+        .then(wait_for_dynamic_replan(180))
         .then(assertions::custom("gate block increased route cost", |world| {
             let diagnostics = world.resource::<LabDiagnostics>();
             diagnostics.dynamic_cost_after > diagnostics.dynamic_cost_before
@@ -192,14 +188,7 @@ fn hpa_pathfinding_reopen_gate() -> Scenario {
             condition: Box::new(|world| world.resource::<LabDiagnostics>().invalidations > 0),
             max_frames: 120,
         })
-        .then(Action::WaitUntil {
-            label: "cost increased after block".into(),
-            condition: Box::new(|world| {
-                let d = world.resource::<LabDiagnostics>();
-                d.dynamic_cost_after > d.dynamic_cost_before
-            }),
-            max_frames: 180,
-        })
+        .then(wait_for_dynamic_replan(180))
         .then(assertions::custom("gate block increased cost", |world| {
             let d = world.resource::<LabDiagnostics>();
             d.dynamic_cost_after > d.dynamic_cost_before
